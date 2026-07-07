@@ -17,13 +17,14 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(GovernorateSeeder::class);
         $this->call(AcademicContentSeeder::class);
+        $this->call(AdminSeeder::class);
 
         // User::factory(10)->create();
 
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'phone' => '0900000000',
+            'phone' => '+963900000000',
         ]);
     }
 }
