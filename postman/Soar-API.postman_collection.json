@@ -1,0 +1,2006 @@
+{
+    "info": {
+        "name": "Soar API",
+        "_postman_id": "b6f1a6a0-0000-4a11-9a11-000000000001",
+        "description": "مجموعة Postman الكاملة لـ API تطبيق Soar (تطبيق مدرسي على غرار لبيب).\n\n## البنية\n- **Auth**: تسجيل/دخول/OTP لكل من الطالب وولي الأمر.\n- **Governorates**: بيانات مرجعية للمحافظات (قراءة فقط).\n- **Schools / Branches / Categories**: القراءة لأي مستخدم، الكتابة للأدمن فقط.\n- **Students / Parents (Admin)**: إدارة كاملة من طرف الأدمن.\n\n## قبل البدء\n1. شغّل الفولدر **Auth → Register** ثم **Confirm Registration** لإنشاء وتفعيل حساب طالب عادي، أو أنشئ حساب أدمن يدوياً (`is_admin = true`) لتجربة عمليات الكتابة.\n2. نفّذ **Login** — التوكن يُحفظ تلقائياً بالمتغيّر `{{token}}` (Test Script بكل طلب دخول).\n3. أي معرّف (id) تنشئه (مدرسة/فرع/فئة/طالب/ولي أمر) يُحفظ تلقائياً بمتغيّر مناسب (`school_id`, `branch_id`, ...) لاستخدامه بباقي الطلبات بنفس الفولدر.\n\n## ملاحظة تقنية مهمة\nطلبات التحديث (Update) للموارد التي تحوي حقل صورة (`image`/`avatar`) تُرسل كـ **POST مع `?_method=PUT`** بدلاً من PUT مباشرة، لأن PHP/Laravel لا يدعم رفع الملفات (`multipart/form-data`) على طلبات PUT الحقيقية.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://127.0.0.1:8000/api",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "refresh_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "governorate_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "school_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "branch_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "category_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "student_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "parent_id",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Auth",
+            "description": "تسجيل حساب طالب/ولي أمر، تفعيله عبر رمز OTP، تسجيل الدخول، ونسيان كلمة المرور.\n\n**آلية OTP:** الرمز يُرسل حالياً عبر بوت تيليجرام إلى مجموعة واحدة مُعدّة بـ `TELEGRAM_CHAT_ID` (وليس لكل مستخدم على حدة). راقب المجموعة للحصول على الرمز أثناء الاختبار.\n\n**تدفق التسجيل:** register → (استلم الرمز) → confirm-registration → access_token + refresh_token.\n\n**تدفق الدخول:** login → إذا لم يكن الهاتف مفعّلاً بعد يرجع `otp_required: true` ويجب استدعاء confirm-login؛ إذا كان مفعّلاً يرجع التوكنات مباشرة.",
+            "item": [
+                {
+                    "name": "Register (Student)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/register",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "register"
+                            ]
+                        },
+                        "description": "ينشئ حساب طالب جديد (غير مفعّل) ويرسل رمز تحقق (OTP) عبر بوت تيليجرام.\n\n**الاستجابة:** `{ otp_required: true }` — استخدم Confirm Registration بعدها بالرمز المستلم.",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "name",
+                                    "type": "text",
+                                    "description": "string, required, max:255 — اسم الطالب الكامل",
+                                    "value": "Ahmad Khaled"
+                                },
+                                {
+                                    "key": "phone",
+                                    "type": "text",
+                                    "description": "string, required, unique — رقم الهاتف (يُستخدم لاحقاً لتسجيل الدخول)",
+                                    "value": "0988111222"
+                                },
+                                {
+                                    "key": "gender",
+                                    "type": "text",
+                                    "description": "string, nullable, in: male|female",
+                                    "value": "male"
+                                },
+                                {
+                                    "key": "age",
+                                    "type": "text",
+                                    "description": "string, nullable",
+                                    "value": "17"
+                                },
+                                {
+                                    "key": "avatar",
+                                    "type": "file",
+                                    "description": "file, nullable, image (jpeg/png/jpg), max 4MB — الصورة الشخصية",
+                                    "src": []
+                                },
+                                {
+                                    "key": "password",
+                                    "type": "text",
+                                    "description": "string, required, min:8, يجب أن يطابق password_confirmation",
+                                    "value": "password123"
+                                },
+                                {
+                                    "key": "password_confirmation",
+                                    "type": "text",
+                                    "description": "string, required — تأكيد كلمة المرور",
+                                    "value": "password123"
+                                },
+                                {
+                                    "key": "fcm_token",
+                                    "type": "text",
+                                    "description": "string, nullable — رمز جهاز الإشعارات (Firebase Cloud Messaging), اختياري",
+                                    "value": ""
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Confirm Registration",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/confirm-registration",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "confirm-registration"
+                            ]
+                        },
+                        "description": "يؤكد رقم الهاتف بواسطة رمز OTP ويُفعّل الحساب، ثم يرجع access_token و refresh_token.\n\n| الحقل | النوع | إلزامي | ملاحظات |\n|---|---|---|---|\n| phone | string | نعم | نفس الرقم المستخدم بالتسجيل |\n| otp_code | string | نعم | 4 أرقام بالضبط، صالح 4 دقائق، أقصى 4 محاولات |",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"phone\": \"0988111222\",\n    \"otp_code\": \"1234\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    const data = json.data || {};",
+                                    "    if (data.access_token) {",
+                                    "        pm.collectionVariables.set('token', data.access_token);",
+                                    "        pm.collectionVariables.set('refresh_token', data.refresh_token || '');",
+                                    "        console.log('Saved access_token to {{token}}');",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "description": "تسجيل الدخول برقم الهاتف وكلمة المرور.\n\n| الحقل | النوع | إلزامي | ملاحظات |\n|---|---|---|---|\n| phone | string | نعم | |\n| password | string | نعم | |\n| type | string | نعم | `user` أو `parent` |\n| fcm_token | string | لا | رمز جهاز الإشعارات |\n\nإذا لم يكن الحساب مفعّلاً بعد يرجع `otp_required: true` (استخدم Confirm Login). حساب الأدمن (`is_admin=true`) يحصل على توكن قصير الصلاحية (10 دقائق) بصلاحية `dashboard`.",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"phone\": \"0988111222\",\n    \"password\": \"password123\",\n    \"type\": \"user\",\n    \"fcm_token\": \"\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    const data = json.data || {};",
+                                    "    if (data.access_token) {",
+                                    "        pm.collectionVariables.set('token', data.access_token);",
+                                    "        pm.collectionVariables.set('refresh_token', data.refresh_token || '');",
+                                    "        console.log('Saved access_token to {{token}}');",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Confirm Login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/confirm-login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "confirm-login"
+                            ]
+                        },
+                        "description": "يُستخدم فقط إذا رجع Login بـ `otp_required: true` (حساب غير مفعّل الهاتف).\n\n| الحقل | النوع | إلزامي | ملاحظات |\n|---|---|---|---|\n| phone | string | نعم | |\n| otp_code | string | نعم | 4 أرقام |\n| type | string | نعم | `user` أو `parent` |",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"phone\": \"0988111222\",\n    \"otp_code\": \"1234\",\n    \"type\": \"user\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    const data = json.data || {};",
+                                    "    if (data.access_token) {",
+                                    "        pm.collectionVariables.set('token', data.access_token);",
+                                    "        pm.collectionVariables.set('refresh_token', data.refresh_token || '');",
+                                    "        console.log('Saved access_token to {{token}}');",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Forgot Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/forgot-password",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "forgot-password"
+                            ]
+                        },
+                        "description": "يرسل رمز OTP (type=reset_password) عبر بوت تيليجرام لإعادة تعيين كلمة المرور.\n\n| الحقل | النوع | إلزامي | ملاحظات |\n|---|---|---|---|\n| phone | string | نعم | يجب أن يكون مسجّلاً مسبقاً |\n| type | string | نعم | `user` أو `parent` |",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"phone\": \"0988111222\",\n    \"type\": \"user\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Confirm Forgot Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/confirm-forgot-password",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "confirm-forgot-password"
+                            ]
+                        },
+                        "description": "يتحقق من رمز إعادة تعيين كلمة المرور (لا يغيّرها بعد).\n\n| الحقل | النوع | إلزامي | ملاحظات |\n|---|---|---|---|\n| phone | string | نعم | |\n| otp_code | string | نعم | 4 أرقام |\n| type | string | نعم | `user` أو `parent` |\n\nبعد النجاح استخدم Reset Password مباشرة.",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"phone\": \"0988111222\",\n    \"otp_code\": \"1234\",\n    \"type\": \"user\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Reset Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/reset-password",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "reset-password"
+                            ]
+                        },
+                        "description": "يضبط كلمة مرور جديدة بعد نجاح Confirm Forgot Password.\n\n| الحقل | النوع | إلزامي | ملاحظات |\n|---|---|---|---|\n| phone | string | نعم | |\n| type | string | نعم | `user` أو `parent` |\n| password | string | نعم | min:8, confirmed |\n| password_confirmation | string | نعم | يجب أن يطابق password |",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"phone\": \"0988111222\",\n    \"type\": \"user\",\n    \"password\": \"newpassword123\",\n    \"password_confirmation\": \"newpassword123\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Resend OTP",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/resend-otp",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "resend-otp"
+                            ]
+                        },
+                        "description": "يعيد إرسال رمز OTP (مثلاً إذا انتهت صلاحيته أو لم يصل).\n\n| الحقل | النوع | إلزامي | ملاحظات |\n|---|---|---|---|\n| phone | string | نعم | |\n| type | string | نعم | `register` أو `reset_password` |",
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"phone\": \"0988111222\",\n    \"type\": \"register\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/logout",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "logout"
+                            ]
+                        },
+                        "description": "يلغي التوكن الحالي (الموجود بهيدر Authorization) فقط.\n\n| الحقل | النوع | إلزامي | ملاحظات |\n|---|---|---|---|\n| fcm_token | string | لا | إذا مُرّر، يُحذف الجهاز المرتبط بهذا التوكن |\n\n**Auth:** Bearer token مطلوب.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"fcm_token\": \"\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete My Account",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/account",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "account"
+                            ]
+                        },
+                        "description": "يحذف الحساب المسجّل دخوله حالياً نهائياً مع كل توكناته.\n\n**Auth:** Bearer token مطلوب. لا يوجد body.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Governorates (Reference)",
+            "description": "قائمة المحافظات السورية الأربعة عشر — بيانات مرجعية ثابتة (Seeder)، بدون CRUD. تُستخدم فقط لاختيار `governorate_id` عند إنشاء مدرسة.",
+            "item": [
+                {
+                    "name": "List Governorates",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/governorates",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "governorates"
+                            ]
+                        },
+                        "description": "يرجع كل المحافظات (بدون ترقيم صفحات). أي مستخدم مسجّل دخول يقدر يستدعيها.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    const json = pm.response.json();",
+                                    "    if (Array.isArray(json.data) && json.data.length > 0) {",
+                                    "        pm.collectionVariables.set('governorate_id', json.data[0].id);",
+                                    "        console.log('Saved first governorate id to {{governorate_id}}');",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Schools",
+            "description": "إدارة المدارس ضمن المحافظات.\n\n**القراءة (index/show):** أي مستخدم مسجّل دخول.\n**الكتابة (store/update/destroy):** أدمن فقط (توكن بصلاحية `dashboard`).\n\n⚠️ لرفع/تغيير صورة (`image`) مع التحديث، لازم PHP يعالج الملفات كـ multipart، وPUT ما بيدعم multipart مباشرة — لذلك التحديث هون مبني كـ **POST مع `?_method=PUT`** (method spoofing)، هاي الطريقة المعتمدة بلارافيل.",
+            "item": [
+                {
+                    "name": "List Schools",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/schools?governorate_id={{governorate_id}}&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "schools"
+                            ],
+                            "query": [
+                                {
+                                    "key": "governorate_id",
+                                    "value": "{{governorate_id}}"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15"
+                                }
+                            ]
+                        },
+                        "description": "قائمة مدارس مُرقّمة (paginated).\n\n| Query Param | النوع | إلزامي | ملاحظات |\n|---|---|---|---|\n| governorate_id | integer | لا | فلترة حسب محافظة معيّنة |\n| per_page | integer | لا | افتراضي 15 |",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create School",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/schools",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "schools"
+                            ]
+                        },
+                        "description": "ينشئ مدرسة جديدة. **أدمن فقط**.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "governorate_id",
+                                    "type": "text",
+                                    "description": "integer, required — يجب أن يكون موجوداً بجدول governorates (استخدم List Governorates)",
+                                    "value": "{{governorate_id}}"
+                                },
+                                {
+                                    "key": "name",
+                                    "type": "text",
+                                    "description": "string, required, max:255",
+                                    "value": "مدرسة الرسالة"
+                                },
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "description": "file, nullable, image, max 4MB — شعار/صورة المدرسة",
+                                    "src": []
+                                }
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    if (json.data && json.data.id) {",
+                                    "        pm.collectionVariables.set('school_id', json.data.id);",
+                                    "        console.log('Saved school id to {{school_id}}');",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get School",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/schools/{{school_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "schools",
+                                "{{school_id}}"
+                            ]
+                        },
+                        "description": "يرجع مدرسة واحدة مع بيانات المحافظة التابعة لها (`governorate`).",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update School",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/schools/{{school_id}}?_method=PUT",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "schools",
+                                "{{school_id}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "_method",
+                                    "value": "PUT"
+                                }
+                            ]
+                        },
+                        "description": "يحدّث مدرسة موجودة (كل الحقول اختيارية — أرسل فقط ما تريد تغييره). **أدمن فقط**.\n\n> ملاحظة: الطلب POST مع `?_method=PUT` وليس PUT مباشرة، لأن رفع الملفات (multipart) يتطلب ذلك في Laravel.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "governorate_id",
+                                    "type": "text",
+                                    "description": "integer, sometimes — يجب أن يكون موجوداً",
+                                    "value": "{{governorate_id}}"
+                                },
+                                {
+                                    "key": "name",
+                                    "type": "text",
+                                    "description": "string, sometimes, max:255",
+                                    "value": "مدرسة الرسالة المحدّثة"
+                                },
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "description": "file, nullable, image, max 4MB — رفع صورة جديدة يحذف القديمة تلقائياً",
+                                    "src": []
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete School",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/schools/{{school_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "schools",
+                                "{{school_id}}"
+                            ]
+                        },
+                        "description": "يحذف المدرسة نهائياً. **أدمن فقط**.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Branches",
+            "description": "الفروع التعليمية (مثال: التاسع، البكالوريا العلمي) — رأس شجرة المحتوى التعليمي (Branch → Category → Subject → Course...). مستقلة تماماً عن المدارس.\n\n**القراءة:** أي مستخدم مسجّل دخول. **الكتابة:** أدمن فقط.",
+            "item": [
+                {
+                    "name": "List Branches",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches?per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches"
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_page",
+                                    "value": "15"
+                                }
+                            ]
+                        },
+                        "description": "قائمة الفروع مُرتّبة تلقائياً حسب حقل `order`.\n\n| Query Param | النوع | إلزامي |\n|---|---|---|\n| per_page | integer | لا (افتراضي 15) |",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Branch",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches"
+                            ]
+                        },
+                        "description": "ينشئ فرعاً تعليمياً جديداً. **أدمن فقط**.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "name",
+                                    "type": "text",
+                                    "description": "string, required, max:255",
+                                    "value": "التاسع"
+                                },
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "description": "file, nullable, image, max 4MB",
+                                    "src": []
+                                },
+                                {
+                                    "key": "order",
+                                    "type": "text",
+                                    "description": "integer, nullable, min:0 — ترتيب العرض (افتراضي 0)",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "is_active",
+                                    "type": "text",
+                                    "description": "boolean, nullable — افتراضي true",
+                                    "value": "true"
+                                }
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    if (json.data && json.data.id) {",
+                                    "        pm.collectionVariables.set('branch_id', json.data.id);",
+                                    "        console.log('Saved branch id to {{branch_id}}');",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Branch",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches/{{branch_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches",
+                                "{{branch_id}}"
+                            ]
+                        },
+                        "description": "يرجع فرعاً واحداً.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Branch",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches/{{branch_id}}?_method=PUT",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches",
+                                "{{branch_id}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "_method",
+                                    "value": "PUT"
+                                }
+                            ]
+                        },
+                        "description": "يحدّث فرعاً موجوداً (كل الحقول اختيارية). **أدمن فقط**.\n\n> POST مع `?_method=PUT` بسبب رفع الملفات.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "name",
+                                    "type": "text",
+                                    "description": "string, sometimes, max:255",
+                                    "value": "التاسع المحدّث"
+                                },
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "description": "file, nullable, image, max 4MB — يستبدل الصورة القديمة",
+                                    "src": []
+                                },
+                                {
+                                    "key": "order",
+                                    "type": "text",
+                                    "description": "integer, nullable, min:0",
+                                    "value": "2"
+                                },
+                                {
+                                    "key": "is_active",
+                                    "type": "text",
+                                    "description": "boolean, nullable",
+                                    "value": "false"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Branch",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/branches/{{branch_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "branches",
+                                "{{branch_id}}"
+                            ]
+                        },
+                        "description": "يحذف الفرع. **أدمن فقط**.\n\n⚠️ يرجع **409** إذا كان للفرع فئات (categories) مرتبطة به (restrictOnDelete) — يجب حذف الفئات أولاً.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Categories",
+            "description": "فئات ضمن كل فرع تعليمي (Category يتبع Branch عبر branch_id). اسم الفئة يجب أن يكون فريداً ضمن نفس الفرع فقط (يمكن تكرار نفس الاسم بفروع مختلفة).\n\n**القراءة:** أي مستخدم مسجّل دخول. **الكتابة:** أدمن فقط.",
+            "item": [
+                {
+                    "name": "List Categories",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/categories?branch_id={{branch_id}}&per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "categories"
+                            ],
+                            "query": [
+                                {
+                                    "key": "branch_id",
+                                    "value": "{{branch_id}}"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15"
+                                }
+                            ]
+                        },
+                        "description": "قائمة الفئات.\n\n| Query Param | النوع | إلزامي | ملاحظات |\n|---|---|---|---|\n| branch_id | integer | لا | فلترة حسب فرع معيّن |\n| per_page | integer | لا | افتراضي 15 |",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Category",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/categories",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "categories"
+                            ]
+                        },
+                        "description": "ينشئ فئة جديدة ضمن فرع. **أدمن فقط**.\n\n⚠️ يرجع **422** إذا كان نفس الاسم مستخدماً مسبقاً ضمن نفس الفرع.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "branch_id",
+                                    "type": "text",
+                                    "description": "integer, required — يجب أن يكون موجوداً بجدول branches",
+                                    "value": "{{branch_id}}"
+                                },
+                                {
+                                    "key": "name",
+                                    "type": "text",
+                                    "description": "string, required, max:255 — فريد ضمن نفس branch_id (unique(branch_id, name))",
+                                    "value": "العلوم"
+                                },
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "description": "file, nullable, image, max 4MB",
+                                    "src": []
+                                },
+                                {
+                                    "key": "order",
+                                    "type": "text",
+                                    "description": "integer, nullable, min:0",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "is_active",
+                                    "type": "text",
+                                    "description": "boolean, nullable — افتراضي true",
+                                    "value": "true"
+                                }
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    if (json.data && json.data.id) {",
+                                    "        pm.collectionVariables.set('category_id', json.data.id);",
+                                    "        console.log('Saved category id to {{category_id}}');",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Category",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/categories/{{category_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "categories",
+                                "{{category_id}}"
+                            ]
+                        },
+                        "description": "يرجع فئة واحدة مع بيانات الفرع التابعة له (`branch`).",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Category",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/categories/{{category_id}}?_method=PUT",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "categories",
+                                "{{category_id}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "_method",
+                                    "value": "PUT"
+                                }
+                            ]
+                        },
+                        "description": "يحدّث فئة موجودة (كل الحقول اختيارية). **أدمن فقط**.\n\n> POST مع `?_method=PUT` بسبب رفع الملفات.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "branch_id",
+                                    "type": "text",
+                                    "description": "integer, sometimes",
+                                    "value": "{{branch_id}}"
+                                },
+                                {
+                                    "key": "name",
+                                    "type": "text",
+                                    "description": "string, sometimes, max:255 — فريد ضمن نفس branch_id",
+                                    "value": "العلوم المحدّثة"
+                                },
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "description": "file, nullable, image, max 4MB",
+                                    "src": []
+                                },
+                                {
+                                    "key": "order",
+                                    "type": "text",
+                                    "description": "integer, nullable, min:0",
+                                    "value": "2"
+                                },
+                                {
+                                    "key": "is_active",
+                                    "type": "text",
+                                    "description": "boolean, nullable",
+                                    "value": "false"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Category",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/categories/{{category_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "categories",
+                                "{{category_id}}"
+                            ]
+                        },
+                        "description": "يحذف الفئة. **أدمن فقط**.\n\n⚠️ يرجع **409** إذا كانت للفئة مواد (subjects) مرتبطة بها (restrictOnDelete).",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Students (Admin)",
+            "description": "إدارة حسابات الطلاب (نفس جدول users) من طرف الأدمن مباشرة، بدون المرور بتدفق OTP. الحساب يُنشأ **مُفعّلاً** مباشرة (phone_verified_at = now).\n\n**كل العمليات هون أدمن فقط** (توكن بصلاحية `dashboard`).",
+            "item": [
+                {
+                    "name": "List Students",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/students?per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "students"
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_page",
+                                    "value": "15"
+                                }
+                            ]
+                        },
+                        "description": "قائمة الطلاب مُرقّمة، الأحدث أولاً.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Student",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/students",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "students"
+                            ]
+                        },
+                        "description": "ينشئ حساب طالب مُفعّل مباشرة (بدون OTP). **أدمن فقط**.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "name",
+                                    "type": "text",
+                                    "description": "string, required, max:255",
+                                    "value": "Sara Ali"
+                                },
+                                {
+                                    "key": "phone",
+                                    "type": "text",
+                                    "description": "string, required, unique:users,phone",
+                                    "value": "0977111222"
+                                },
+                                {
+                                    "key": "email",
+                                    "type": "text",
+                                    "description": "string, nullable, email, unique:users,email",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "gender",
+                                    "type": "text",
+                                    "description": "string, nullable, in: male|female",
+                                    "value": "female"
+                                },
+                                {
+                                    "key": "age",
+                                    "type": "text",
+                                    "description": "string, nullable",
+                                    "value": "16"
+                                },
+                                {
+                                    "key": "avatar",
+                                    "type": "file",
+                                    "description": "file, nullable, image, max 4MB",
+                                    "src": []
+                                },
+                                {
+                                    "key": "password",
+                                    "type": "text",
+                                    "description": "string, required, min:8, confirmed",
+                                    "value": "password123"
+                                },
+                                {
+                                    "key": "password_confirmation",
+                                    "type": "text",
+                                    "description": "string, required",
+                                    "value": "password123"
+                                }
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    if (json.data && json.data.id) {",
+                                    "        pm.collectionVariables.set('student_id', json.data.id);",
+                                    "        console.log('Saved student id to {{student_id}}');",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Student",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/students/{{student_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "students",
+                                "{{student_id}}"
+                            ]
+                        },
+                        "description": "يرجع بيانات طالب واحد.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Student",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/students/{{student_id}}?_method=PUT",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "students",
+                                "{{student_id}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "_method",
+                                    "value": "PUT"
+                                }
+                            ]
+                        },
+                        "description": "يحدّث بيانات طالب (كل الحقول اختيارية). **أدمن فقط**.\n\n> POST مع `?_method=PUT` بسبب رفع الملفات.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "name",
+                                    "type": "text",
+                                    "description": "string, sometimes, max:255",
+                                    "value": "Sara Ali Updated"
+                                },
+                                {
+                                    "key": "phone",
+                                    "type": "text",
+                                    "description": "string, sometimes, unique (يتجاهل الطالب الحالي)",
+                                    "value": "0977111222"
+                                },
+                                {
+                                    "key": "email",
+                                    "type": "text",
+                                    "description": "string, nullable, email, unique (يتجاهل الطالب الحالي)",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "gender",
+                                    "type": "text",
+                                    "description": "string, nullable, in: male|female",
+                                    "value": "female"
+                                },
+                                {
+                                    "key": "age",
+                                    "type": "text",
+                                    "description": "string, nullable",
+                                    "value": "17"
+                                },
+                                {
+                                    "key": "avatar",
+                                    "type": "file",
+                                    "description": "file, nullable, image, max 4MB — يستبدل الصورة القديمة",
+                                    "src": []
+                                },
+                                {
+                                    "key": "password",
+                                    "type": "text",
+                                    "description": "string, nullable, min:8, confirmed — اتركه فارغاً لعدم التغيير",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "password_confirmation",
+                                    "type": "text",
+                                    "description": "string — مطلوب فقط إذا مُلئ password",
+                                    "value": ""
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Student",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/students/{{student_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "students",
+                                "{{student_id}}"
+                            ]
+                        },
+                        "description": "يحذف الطالب نهائياً مع كل توكناته. **أدمن فقط**.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Parents (Admin)",
+            "description": "إدارة حسابات أولياء الأمور (جدول parents منفصل) من طرف الأدمن. لا يوجد حقل صورة لولي الأمر حالياً.\n\n**كل العمليات هون أدمن فقط** (توكن بصلاحية `dashboard`).",
+            "item": [
+                {
+                    "name": "List Parents",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/parents?per_page=15",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "parents"
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_page",
+                                    "value": "15"
+                                }
+                            ]
+                        },
+                        "description": "قائمة أولياء الأمور مُرقّمة، الأحدث أولاً.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create Parent",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/parents",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "parents"
+                            ]
+                        },
+                        "description": "ينشئ حساب ولي أمر مُفعّل مباشرة. **أدمن فقط**.\n\n| الحقل | النوع | إلزامي | ملاحظات |\n|---|---|---|---|\n| name | string | نعم | max:255 |\n| phone | string | نعم | unique:parents,phone |\n| password | string | نعم | min:8, confirmed |\n| password_confirmation | string | نعم | |",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Khaled Ibrahim\",\n    \"phone\": \"0966111222\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                    "    const json = pm.response.json();",
+                                    "    if (json.data && json.data.id) {",
+                                    "        pm.collectionVariables.set('parent_id', json.data.id);",
+                                    "        console.log('Saved parent id to {{parent_id}}');",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Parent",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/parents/{{parent_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "parents",
+                                "{{parent_id}}"
+                            ]
+                        },
+                        "description": "يرجع بيانات ولي أمر واحد.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Parent",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/parents/{{parent_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "parents",
+                                "{{parent_id}}"
+                            ]
+                        },
+                        "description": "يحدّث بيانات ولي أمر (كل الحقول اختيارية). **أدمن فقط**.\n\n| الحقل | النوع | إلزامي | ملاحظات |\n|---|---|---|---|\n| name | string | لا (sometimes) | max:255 |\n| phone | string | لا (sometimes) | unique (يتجاهل السجل الحالي) |\n| password | string | لا | اتركه فارغاً لعدم التغيير، وإلا min:8 + confirmed |",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Khaled Ibrahim Updated\",\n    \"phone\": \"0966111222\",\n    \"password\": \"\",\n    \"password_confirmation\": \"\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Parent",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/admin/parents/{{parent_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "parents",
+                                "{{parent_id}}"
+                            ]
+                        },
+                        "description": "يحذف ولي الأمر نهائياً مع كل توكناته. **أدمن فقط**.",
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}
