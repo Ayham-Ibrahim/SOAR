@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('courses', function (Blueprint $table) {
             $table->id();
             $table->foreignId('subject_id')->constrained()->restrictOnDelete();
+            $table->foreignId('teacher_id')->constrained()->restrictOnDelete();
             $table->string('title');
             $table->text('description');
             $table->decimal('price', 10, 2);

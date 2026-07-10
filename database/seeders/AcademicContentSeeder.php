@@ -9,6 +9,7 @@ use App\Models\Governorate;
 use App\Models\Lesson;
 use App\Models\School;
 use App\Models\Subject;
+use App\Models\Teacher;
 use App\Models\Unit;
 use App\Models\Video;
 use Illuminate\Database\Seeder;
@@ -27,6 +28,12 @@ class AcademicContentSeeder extends Seeder
         School::create(['governorate_id' => $damascus->id, 'name' => 'مدرسة الرسالة']);
         School::create(['governorate_id' => $damascus->id, 'name' => 'مدرسة الفارابي']);
         School::create(['governorate_id' => $aleppo->id, 'name' => 'مدرسة الأمل']);
+
+        $teacher = Teacher::create([
+            'name' => 'الأستاذ أحمد الخطيب',
+            'bio' => 'مدرّس ذو خبرة طويلة في التعليم الثانوي',
+            'is_active' => true,
+        ]);
 
         $branches = [
             'التاسع' => [
@@ -70,6 +77,7 @@ class AcademicContentSeeder extends Seeder
 
                     $course = Course::create([
                         'subject_id' => $subject->id,
+                        'teacher_id' => $teacher->id,
                         'title' => 'دورة '.$subjectName,
                         'description' => 'دورة شاملة في مادة '.$subjectName,
                         'price' => 50000,
