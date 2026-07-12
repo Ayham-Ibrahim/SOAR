@@ -20,7 +20,7 @@ class VideoService
         return Video::create([
             'lesson_id' => $data['lesson_id'],
             'title' => $data['title'],
-            'url' => $data['url'],
+            'url' => FileStorage::storeFile($data['video'], 'videos', 'vid'),
             'thumbnail' => isset($data['thumbnail']) ? FileStorage::storeFile($data['thumbnail'], 'videos', 'img') : null,
             'duration_seconds' => $data['duration_seconds'] ?? null,
             'order' => $data['order'] ?? 0,
@@ -34,7 +34,9 @@ class VideoService
         $video->update([
             'lesson_id' => $data['lesson_id'] ?? $video->lesson_id,
             'title' => $data['title'] ?? $video->title,
-            'url' => $data['url'] ?? $video->url,
+            'url' => isset($data['video'])
+                ? FileStorage::fileExists($data['video'], $video->url, 'videos', 'vid')
+                : $video->url,
             'thumbnail' => isset($data['thumbnail'])
                 ? FileStorage::fileExists($data['thumbnail'], $video->thumbnail, 'videos', 'img')
                 : $video->thumbnail,

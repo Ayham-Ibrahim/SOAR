@@ -3358,7 +3358,7 @@
                     "item": [
                         {
                             "name": "Videos",
-                            "description": "فيديوهات كل درس. الفيديو نفسه مُستضاف خارجياً (CDN/YouTube/إلخ) — نحن فقط نخزّن الرابط، لا نرفع ملف فيديو فعلي. **أدمن فقط** لكل العمليات.",
+                            "description": "فيديوهات كل درس. **أضف الدرس أولاً** (مجلد Lessons)، ثم ارفع الفيديو محدّداً `lesson_id` تبعه — الفيديو يُرفع كملف فعلي (multipart) ويُخزَّن على السيرفر، مو مجرد رابط. **أدمن فقط** لكل العمليات.",
                             "item": [
                                 {
                                     "name": "List Videos",
@@ -3426,7 +3426,7 @@
                                                 "videos"
                                             ]
                                         },
-                                        "description": "ينشئ فيديو جديد ضمن درس.",
+                                        "description": "يرفع فيديو جديد ويربطه بدرس موجود مسبقاً.",
                                         "auth": {
                                             "type": "bearer",
                                             "bearer": [
@@ -3443,7 +3443,7 @@
                                                 {
                                                     "key": "lesson_id",
                                                     "type": "text",
-                                                    "description": "integer, required, exists:lessons,id",
+                                                    "description": "integer, required, exists:lessons,id — الدرس الذي أُضيف مسبقاً والذي سيُربط به هذا الفيديو",
                                                     "value": "{{lesson_id}}"
                                                 },
                                                 {
@@ -3453,10 +3453,10 @@
                                                     "value": "فيديو الدرس الأول"
                                                 },
                                                 {
-                                                    "key": "url",
-                                                    "type": "text",
-                                                    "description": "string, required, url — رابط الفيديو المستضاف خارجياً",
-                                                    "value": "https://example.com/video.mp4"
+                                                    "key": "video",
+                                                    "type": "file",
+                                                    "description": "file, required — ملف الفيديو نفسه. mimes: mp4, webm, ogg, mov, wmv — max 500MB",
+                                                    "src": []
                                                 },
                                                 {
                                                     "key": "thumbnail",
@@ -3532,7 +3532,7 @@
                                                 "{{video_id}}"
                                             ]
                                         },
-                                        "description": "يرجع فيديو واحد.",
+                                        "description": "يرجع فيديو واحد (الحقل `url` هو مسار الملف المخزَّن على السيرفر).",
                                         "auth": {
                                             "type": "bearer",
                                             "bearer": [
@@ -3589,16 +3589,22 @@
                                             "mode": "formdata",
                                             "formdata": [
                                                 {
+                                                    "key": "lesson_id",
+                                                    "type": "text",
+                                                    "description": "integer, sometimes, exists:lessons,id",
+                                                    "value": "{{lesson_id}}"
+                                                },
+                                                {
                                                     "key": "title",
                                                     "type": "text",
                                                     "description": "string, sometimes, max:255",
                                                     "value": "فيديو الدرس الأول - محدّث"
                                                 },
                                                 {
-                                                    "key": "url",
-                                                    "type": "text",
-                                                    "description": "string, sometimes, url",
-                                                    "value": "https://example.com/video-v2.mp4"
+                                                    "key": "video",
+                                                    "type": "file",
+                                                    "description": "file, nullable — ارفع ملف جديد لاستبدال الفيديو الحالي (يحذف الملف القديم تلقائياً). اتركه فارغاً للإبقاء على نفس الفيديو",
+                                                    "src": []
                                                 },
                                                 {
                                                     "key": "thumbnail",

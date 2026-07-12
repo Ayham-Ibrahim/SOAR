@@ -20,7 +20,7 @@ class StoreVideoRequest extends FormRequest
         return [
             'lesson_id' => ['required', 'integer', 'exists:lessons,id'],
             'title' => ['required', 'string', 'max:255'],
-            'url' => ['required', 'string', 'url', 'max:2048'],
+            'video' => ['required', 'file', 'mimes:mp4,webm,ogg,mov,wmv', 'max:512000'],
             'thumbnail' => ['nullable', 'image', 'max:4096'],
             'duration_seconds' => ['nullable', 'integer', 'min:0'],
             'order' => ['nullable', 'integer', 'min:0'],
@@ -36,7 +36,8 @@ class StoreVideoRequest extends FormRequest
             'string' => 'حقل :attribute يجب أن يكون نصاً.',
             'integer' => 'حقل :attribute يجب أن يكون رقماً صحيحاً.',
             'exists' => 'القيمة المحددة لحقل :attribute غير موجودة.',
-            'url' => 'حقل :attribute يجب أن يكون رابطاً صحيحاً.',
+            'file' => 'حقل :attribute يجب أن يكون ملفاً.',
+            'mimes' => 'حقل :attribute يجب أن يكون ملف فيديو من نوع: :values.',
             'image' => 'حقل :attribute يجب أن يكون صورة.',
             'boolean' => 'حقل :attribute يجب أن يكون صحيح أو خاطئ.',
             'max' => 'حقل :attribute أكبر من الحد المسموح به.',
@@ -49,7 +50,7 @@ class StoreVideoRequest extends FormRequest
         return [
             'lesson_id' => 'الدرس',
             'title' => 'عنوان الفيديو',
-            'url' => 'رابط الفيديو',
+            'video' => 'ملف الفيديو',
             'thumbnail' => 'الصورة المصغّرة',
             'duration_seconds' => 'المدة (بالثواني)',
             'order' => 'الترتيب',
