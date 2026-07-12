@@ -1,15 +1,28 @@
 <?php
 
+use App\Http\Controllers\Admin\AdvertisementController;
+use App\Http\Controllers\Admin\ChoiceController;
+use App\Http\Controllers\Admin\ExamAttemptController as AdminExamAttemptController;
+use App\Http\Controllers\Admin\ExamController as AdminExamController;
+use App\Http\Controllers\Admin\FileController;
 use App\Http\Controllers\Admin\LessonController;
+use App\Http\Controllers\Admin\NewsController as AdminNewsController;
+use App\Http\Controllers\Admin\OfferController;
+use App\Http\Controllers\Admin\PackageController;
 use App\Http\Controllers\Admin\ParentController;
+use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\UnitController;
+use App\Http\Controllers\Admin\VideoController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CourseController;
+use App\Http\Controllers\ExamAttemptController;
+use App\Http\Controllers\ExamController;
 use App\Http\Controllers\GovernorateController;
+use App\Http\Controllers\NewsController;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\SubjectController;
 use Illuminate\Support\Facades\Route;
@@ -36,13 +49,18 @@ Route::prefix('auth')->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     // Reference data & content tree: readable by any authenticated user
-    // (students browse schools/branches/categories/subjects/courses).
+    // (students browse schools/branches/categories/subjects/courses/news/exams).
     Route::get('governorates', [GovernorateController::class, 'index']);
     Route::apiResource('schools', SchoolController::class)->only(['index', 'show']);
     Route::apiResource('branches', BranchController::class)->only(['index', 'show']);
     Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
     Route::apiResource('subjects', SubjectController::class)->only(['index', 'show']);
     Route::apiResource('courses', CourseController::class)->only(['index', 'show']);
+    Route::apiResource('news', NewsController::class)->only(['index', 'show']);
+    Route::apiResource('exams', ExamController::class)->only(['index', 'show']);
+
+    // Exam taking & results: scoped to the authenticated student.
+    Route::apiResource('exam-attempts', ExamAttemptController::class)->only(['index', 'store', 'show']);
 });
 
 Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
@@ -53,6 +71,18 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
         Route::apiResource('teachers', TeacherController::class);
         Route::apiResource('units', UnitController::class);
         Route::apiResource('lessons', LessonController::class);
+        Route::apiResource('videos', VideoController::class);
+        Route::apiResource('files', FileController::class);
+        Route::apiResource('exams', AdminExamController::class);
+        Route::apiResource('questions', QuestionController::class);
+        Route::apiResource('choices', ChoiceController::class);
+        Route::apiResource('news', AdminNewsController::class);
+        Route::apiResource('advertisements', AdvertisementController::class);
+        Route::apiResource('packages', PackageController::class);
+        Route::apiResource('offers', OfferController::class);
+
+        Route::apiResource('exam-attempts', AdminExamAttemptController::class)->only(['index', 'show']);
+        Route::patch('exam-attempts/{exam_attempt}/grade', [AdminExamAttemptController::class, 'grade']);
     });
 
 Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])->group(function () {
