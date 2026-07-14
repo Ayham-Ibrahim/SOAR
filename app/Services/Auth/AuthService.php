@@ -43,6 +43,8 @@ class AuthService
                 'avatar' => isset($data['avatar']) ? FileStorage::storeFile($data['avatar'], 'avatars', 'img') : null,
                 'password' => Hash::make($data['password']),
                 'phone_verified_at' => null,
+                'governorate_id' => $data['governorate_id'] ?? null,
+                'school_id' => $data['school_id'] ?? null,
             ]);
 
             if ($data['fcm_token'] ?? false) {

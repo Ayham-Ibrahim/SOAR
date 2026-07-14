@@ -16,7 +16,6 @@ use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\VideoController;
 use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\BranchController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\ExamAttemptController;
@@ -24,6 +23,7 @@ use App\Http\Controllers\ExamController;
 use App\Http\Controllers\GovernorateController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\SchoolController;
+use App\Http\Controllers\SubCategoryController;
 use App\Http\Controllers\SubjectController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Middleware\CheckAbilities;
@@ -48,12 +48,13 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
-    // Reference data & content tree: readable by any authenticated user
-    // (students browse schools/branches/categories/subjects/courses/news/exams).
-    Route::get('governorates', [GovernorateController::class, 'index']);
+    // Reference data & content tree: readable by ANY authenticated user, with
+    // NO filtering by student attribute. The platform is open — every student
+    // can browse every category/sub-category/subject/course.
+    Route::apiResource('governorates', GovernorateController::class)->only(['index']);
     Route::apiResource('schools', SchoolController::class)->only(['index', 'show']);
-    Route::apiResource('branches', BranchController::class)->only(['index', 'show']);
     Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
+    Route::apiResource('sub-categories', SubCategoryController::class)->only(['index', 'show']);
     Route::apiResource('subjects', SubjectController::class)->only(['index', 'show']);
     Route::apiResource('courses', CourseController::class)->only(['index', 'show']);
     Route::apiResource('news', NewsController::class)->only(['index', 'show']);
@@ -87,8 +88,8 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
 
 Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])->group(function () {
     Route::apiResource('schools', SchoolController::class)->except(['index', 'show']);
-    Route::apiResource('branches', BranchController::class)->except(['index', 'show']);
     Route::apiResource('categories', CategoryController::class)->except(['index', 'show']);
+    Route::apiResource('sub-categories', SubCategoryController::class)->except(['index', 'show']);
     Route::apiResource('subjects', SubjectController::class)->except(['index', 'show']);
     Route::apiResource('courses', CourseController::class)->except(['index', 'show']);
 });

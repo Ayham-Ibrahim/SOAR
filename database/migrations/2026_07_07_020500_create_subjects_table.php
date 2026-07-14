@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('subjects', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('category_id')->constrained()->restrictOnDelete();
+            $table->foreignId('sub_category_id')->constrained()->restrictOnDelete();
             $table->string('name');
             $table->string('image')->nullable();
             $table->unsignedInteger('order')->default(0);

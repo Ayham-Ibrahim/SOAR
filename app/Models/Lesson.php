@@ -8,11 +8,19 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * A lesson belongs to BOTH a course and a unit, and the two must agree on
+ * subject: lesson.course.subject_id MUST equal lesson.unit.subject_id. This
+ * is not a DB constraint (it spans two separate parent chains) — it's
+ * enforced in StoreLessonRequest/UpdateLessonRequest via an after-validation
+ * hook. Do not bypass that check when creating/updating lessons elsewhere.
+ */
 class Lesson extends Model
 {
     use HasFactory, Orderable;
 
     protected $fillable = [
+        'course_id',
         'unit_id',
         'title',
         'order',
@@ -24,6 +32,11 @@ class Lesson extends Model
         return [
             'is_free' => 'boolean',
         ];
+    }
+
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
     }
 
     public function unit(): BelongsTo

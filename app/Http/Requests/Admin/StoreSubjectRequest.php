@@ -18,7 +18,7 @@ class StoreSubjectRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category_id' => ['required', 'integer', 'exists:categories,id'],
+            'sub_category_id' => ['required', 'integer', 'exists:sub_categories,id'],
             'name' => ['required', 'string', 'max:255'],
             'image' => ['nullable', 'image', 'max:4096'],
             'order' => ['nullable', 'integer', 'min:0'],
@@ -43,7 +43,7 @@ class StoreSubjectRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'category_id' => 'الفئة',
+            'sub_category_id' => 'الفرع',
             'name' => 'اسم المادة',
             'image' => 'الصورة',
             'order' => 'الترتيب',

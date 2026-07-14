@@ -14,7 +14,7 @@ class Subject extends Model
     use HasFactory, Orderable, SoftDeletes;
 
     protected $fillable = [
-        'category_id',
+        'sub_category_id',
         'name',
         'image',
         'order',
@@ -28,13 +28,18 @@ class Subject extends Model
         ];
     }
 
-    public function category(): BelongsTo
+    public function subCategory(): BelongsTo
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(SubCategory::class);
     }
 
     public function courses(): HasMany
     {
         return $this->hasMany(Course::class);
+    }
+
+    public function units(): HasMany
+    {
+        return $this->hasMany(Unit::class);
     }
 }

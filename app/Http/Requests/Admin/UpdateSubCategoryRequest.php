@@ -4,8 +4,9 @@ namespace App\Http\Requests\Admin;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class StoreCategoryRequest extends FormRequest
+class UpdateSubCategoryRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -17,8 +18,17 @@ class StoreCategoryRequest extends FormRequest
      */
     public function rules(): array
     {
+        $subCategory = $this->route('sub_category');
+        $categoryId = $this->input('category_id', $subCategory?->category_id);
+
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'category_id' => ['sometimes', 'integer', 'exists:categories,id'],
+            'name' => [
+                'sometimes',
+                'string',
+                'max:255',
+                Rule::unique('sub_categories', 'name')->where('category_id', $categoryId)->ignore($subCategory?->id),
+            ],
             'image' => ['nullable', 'image', 'max:4096'],
             'order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
@@ -31,6 +41,8 @@ class StoreCategoryRequest extends FormRequest
             'required' => 'حقل :attribute مطلوب.',
             'string' => 'حقل :attribute يجب أن يكون نصاً.',
             'integer' => 'حقل :attribute يجب أن يكون رقماً صحيحاً.',
+            'exists' => 'القيمة المحددة لحقل :attribute غير موجودة.',
+            'unique' => 'قيمة :attribute مستخدمة بالفعل ضمن نفس القسم.',
             'image' => 'حقل :attribute يجب أن يكون صورة.',
             'boolean' => 'حقل :attribute يجب أن يكون صحيح أو خاطئ.',
             'max' => 'حقل :attribute أكبر من الحد المسموح به.',
@@ -41,7 +53,8 @@ class StoreCategoryRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'name' => 'اسم المرحلة',
+            'category_id' => 'المرحلة',
+            'name' => 'اسم الفرع',
             'image' => 'الصورة',
             'order' => 'الترتيب',
             'is_active' => 'نشط',

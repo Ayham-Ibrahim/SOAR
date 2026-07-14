@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('units', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('course_id')->constrained()->restrictOnDelete();
+            $table->foreignId('subject_id')->constrained()->restrictOnDelete();
             $table->string('title');
             $table->unsignedInteger('order')->default(0);
             $table->timestamps();

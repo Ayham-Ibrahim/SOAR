@@ -7,10 +7,11 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class LessonService
 {
-    public function list(?int $unitId = null, int $perPage = 15): LengthAwarePaginator
+    public function list(?int $courseId = null, ?int $unitId = null, int $perPage = 15): LengthAwarePaginator
     {
         return Lesson::query()
-            ->with('unit')
+            ->with(['course', 'unit'])
+            ->when($courseId, fn ($query) => $query->where('course_id', $courseId))
             ->when($unitId, fn ($query) => $query->where('unit_id', $unitId))
             ->paginate($perPage);
     }
@@ -18,6 +19,7 @@ class LessonService
     public function create(array $data): Lesson
     {
         return Lesson::create([
+            'course_id' => $data['course_id'],
             'unit_id' => $data['unit_id'],
             'title' => $data['title'],
             'order' => $data['order'] ?? 0,
@@ -28,6 +30,7 @@ class LessonService
     public function update(Lesson $lesson, array $data): Lesson
     {
         $lesson->update([
+            'course_id' => $data['course_id'] ?? $lesson->course_id,
             'unit_id' => $data['unit_id'] ?? $lesson->unit_id,
             'title' => $data['title'] ?? $lesson->title,
             'order' => $data['order'] ?? $lesson->order,

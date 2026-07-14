@@ -13,14 +13,14 @@ class Unit extends Model
     use HasFactory, Orderable;
 
     protected $fillable = [
-        'course_id',
+        'subject_id',
         'title',
         'order',
     ];
 
-    public function course(): BelongsTo
+    public function subject(): BelongsTo
     {
-        return $this->belongsTo(Course::class);
+        return $this->belongsTo(Subject::class);
     }
 
     public function lessons(): HasMany

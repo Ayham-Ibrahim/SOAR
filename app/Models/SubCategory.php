@@ -5,14 +5,19 @@ namespace App\Models;
 use App\Models\Concerns\Orderable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
-class Branch extends Model
+/**
+ * Track within a category (e.g. البكالوريا العلمي، التاسع). Replaces the old
+ * top-level "Branch" concept — same shape, now scoped under a Category.
+ */
+class SubCategory extends Model
 {
     use HasFactory, Orderable;
 
     protected $fillable = [
+        'category_id',
         'name',
         'image',
         'order',
@@ -26,18 +31,13 @@ class Branch extends Model
         ];
     }
 
-    public function categories(): HasMany
+    public function category(): BelongsTo
     {
-        return $this->hasMany(Category::class);
+        return $this->belongsTo(Category::class);
     }
 
-    public function subjects(): HasManyThrough
+    public function subjects(): HasMany
     {
-        return $this->hasManyThrough(Subject::class, Category::class);
-    }
-
-    public function students(): HasMany
-    {
-        return $this->hasMany(User::class);
+        return $this->hasMany(Subject::class);
     }
 }

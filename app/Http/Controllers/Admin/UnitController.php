@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\StoreUnitRequest;
 use App\Http\Requests\Admin\UpdateUnitRequest;
 use App\Models\Unit;
 use App\Services\Admin\UnitService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 
 class UnitController extends Controller
@@ -18,7 +19,7 @@ class UnitController extends Controller
     public function index(Request $request)
     {
         $units = $this->unitService->list(
-            $request->integer('course_id') ?: null,
+            $request->integer('subject_id') ?: null,
             $request->integer('per_page', 15)
         );
 
@@ -46,8 +47,12 @@ class UnitController extends Controller
 
     public function destroy(Unit $unit)
     {
-        $this->unitService->delete($unit);
+        try {
+            $this->unitService->delete($unit);
+        } catch (QueryException) {
+            return $this->error('لا يمكن حذف الوحدة لوجود دروس مرتبطة بها', 409);
+        }
 
-        return $this->success([], 'تم حذف الوحدة بنجاح (وكل الدروس والفيديوهات والملفات التابعة لها)');
+        return $this->success([], 'تم حذف الوحدة بنجاح');
     }
 }

@@ -18,7 +18,7 @@ class UpdateUnitRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'course_id' => ['sometimes', 'integer', 'exists:courses,id'],
+            'subject_id' => ['sometimes', 'integer', 'exists:subjects,id'],
             'title' => ['sometimes', 'string', 'max:255'],
             'order' => ['nullable', 'integer', 'min:0'],
         ];
@@ -38,7 +38,7 @@ class UpdateUnitRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'course_id' => 'الدورة',
+            'subject_id' => 'المادة',
             'title' => 'عنوان الوحدة',
             'order' => 'الترتيب',
         ];

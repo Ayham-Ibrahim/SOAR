@@ -30,6 +30,9 @@ class RegisterRequest extends FormRequest
             'avatar' => ['nullable', 'image', 'max:4096'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'fcm_token' => ['nullable', 'string'],
+            // Informational only — never used to gate or filter content.
+            'governorate_id' => ['nullable', 'integer', 'exists:governorates,id'],
+            'school_id' => ['nullable', 'integer', 'exists:schools,id'],
         ];
     }
     
@@ -44,6 +47,8 @@ class RegisterRequest extends FormRequest
             'email' => 'حقل :attribute يجب أن يكون بريدًا إلكترونيًا صالحًا.',
             'numeric' => 'حقل :attribute يجب أن يكون رقمًا.',
             'unique' => 'قيمة :attribute مستخدمة بالفعل.',
+            'integer' => 'حقل :attribute يجب أن يكون رقماً صحيحاً.',
+            'exists' => 'القيمة المحددة لحقل :attribute غير موجودة.',
         ];
     }
 
@@ -57,6 +62,8 @@ class RegisterRequest extends FormRequest
             'avatar' => 'الصورة',
             'password' => 'كلمة المرور',
             'fcm_token' => 'رمز الجهاز',
+            'governorate_id' => 'المحافظة',
+            'school_id' => 'المدرسة',
         ];
     }
 }
