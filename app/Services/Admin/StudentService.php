@@ -25,6 +25,8 @@ class StudentService
             'avatar' => isset($data['avatar']) ? FileStorage::storeFile($data['avatar'], 'avatars', 'img') : null,
             'password' => Hash::make($data['password']),
             'phone_verified_at' => now(),
+            'governorate_id' => $data['governorate_id'] ?? null,
+            'school_id' => $data['school_id'] ?? null,
         ]);
     }
 
@@ -40,6 +42,8 @@ class StudentService
                 ? FileStorage::fileExists($data['avatar'], $student->avatar, 'avatars', 'img')
                 : $student->avatar,
             'password' => isset($data['password']) ? Hash::make($data['password']) : $student->password,
+            'governorate_id' => $data['governorate_id'] ?? $student->governorate_id,
+            'school_id' => $data['school_id'] ?? $student->school_id,
         ]);
 
         return $student->fresh();

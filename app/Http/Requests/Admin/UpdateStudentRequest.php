@@ -28,6 +28,9 @@ class UpdateStudentRequest extends FormRequest
             'age' => ['nullable', 'string'],
             'avatar' => ['nullable', 'image', 'max:4096'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            // Informational only — never used to gate or filter content.
+            'governorate_id' => ['nullable', 'integer', 'exists:governorates,id'],
+            'school_id' => ['nullable', 'integer', 'exists:schools,id'],
         ];
     }
 
@@ -42,6 +45,8 @@ class UpdateStudentRequest extends FormRequest
             'email' => 'حقل :attribute يجب أن يكون بريدًا إلكترونيًا صالحًا.',
             'numeric' => 'حقل :attribute يجب أن يكون رقمًا.',
             'unique' => 'قيمة :attribute مستخدمة بالفعل.',
+            'integer' => 'حقل :attribute يجب أن يكون رقماً صحيحاً.',
+            'exists' => 'القيمة المحددة لحقل :attribute غير موجودة.',
         ];
     }
 
@@ -55,6 +60,8 @@ class UpdateStudentRequest extends FormRequest
             'age' => 'العمر',
             'avatar' => 'الصورة',
             'password' => 'كلمة المرور',
+            'governorate_id' => 'المحافظة',
+            'school_id' => 'المدرسة',
         ];
     }
 }

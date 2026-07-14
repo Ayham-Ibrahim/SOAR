@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Course;
 use App\Models\Governorate;
 use App\Models\Lesson;
 use App\Models\School;
+use App\Models\SubCategory;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\Unit;
@@ -17,8 +17,9 @@ use Illuminate\Database\Seeder;
 class AcademicContentSeeder extends Seeder
 {
     /**
-     * Sample provinces/schools plus a full branch → category → subject → course →
-     * unit → lesson → video tree, for local development and demos.
+     * Sample provinces/schools plus a full
+     * category -> sub_category -> subject -> { course, units -> lessons -> video } tree,
+     * for local development and demos.
      */
     public function run(): void
     {
@@ -35,45 +36,66 @@ class AcademicContentSeeder extends Seeder
             'is_active' => true,
         ]);
 
-        $branches = [
-            'التاسع' => [
-                'العلوم' => ['الفيزياء', 'الكيمياء'],
-                'اللغات' => ['اللغة العربية', 'اللغة الإنكليزية'],
+        $tree = [
+            'ثانوي' => [
+                'البكالوريا العلمي' => [
+                    'الفيزياء' => null,
+                    'الكيمياء' => null,
+                ],
+                'البكالوريا الأدبي' => [
+                    'اللغة العربية' => null,
+                    'التاريخ' => null,
+                ],
             ],
-            'البكالوريا العلمي' => [
-                'العلوم' => ['الفيزياء', 'الرياضيات'],
-                'اللغات' => ['اللغة العربية', 'اللغة الإنكليزية'],
+            'إعدادي' => [
+                'التاسع' => [
+                    'الرياضيات' => null,
+                    'العلوم' => null,
+                ],
+                'الثامن' => [
+                    'الرياضيات' => null,
+                    'اللغة الإنكليزية' => null,
+                ],
             ],
         ];
 
-        $branchOrder = 1;
+        $categoryOrder = 1;
 
-        foreach ($branches as $branchName => $categories) {
-            $branch = Branch::create([
-                'name' => $branchName,
-                'order' => $branchOrder++,
+        foreach ($tree as $categoryName => $subCategories) {
+            $category = Category::create([
+                'name' => $categoryName,
+                'order' => $categoryOrder++,
                 'is_active' => true,
             ]);
 
-            $categoryOrder = 1;
+            $subCategoryOrder = 1;
 
-            foreach ($categories as $categoryName => $subjects) {
-                $category = Category::create([
-                    'branch_id' => $branch->id,
-                    'name' => $categoryName,
-                    'order' => $categoryOrder++,
+            foreach ($subCategories as $subCategoryName => $subjects) {
+                $subCategory = SubCategory::create([
+                    'category_id' => $category->id,
+                    'name' => $subCategoryName,
+                    'order' => $subCategoryOrder++,
                     'is_active' => true,
                 ]);
 
                 $subjectOrder = 1;
 
-                foreach ($subjects as $subjectName) {
+                foreach (array_keys($subjects) as $subjectName) {
                     $subject = Subject::create([
-                        'category_id' => $category->id,
+                        'sub_category_id' => $subCategory->id,
                         'name' => $subjectName,
                         'order' => $subjectOrder++,
                         'is_active' => true,
                     ]);
+
+                    $units = [];
+                    for ($u = 1; $u <= 3; $u++) {
+                        $units[] = Unit::create([
+                            'subject_id' => $subject->id,
+                            'title' => 'الوحدة '.$u,
+                            'order' => $u,
+                        ]);
+                    }
 
                     $course = Course::create([
                         'subject_id' => $subject->id,
@@ -88,38 +110,36 @@ class AcademicContentSeeder extends Seeder
                         'is_active' => true,
                     ]);
 
-                    $this->seedUnits($course);
+                    $this->seedLessons($course, $units);
                 }
             }
         }
     }
 
-    private function seedUnits(Course $course): void
+    /**
+     * @param  array<int, Unit>  $units
+     */
+    private function seedLessons(Course $course, array $units): void
     {
-        for ($u = 1; $u <= 2; $u++) {
-            $unit = Unit::create([
+        for ($l = 1; $l <= 4; $l++) {
+            $unit = $units[($l - 1) % count($units)];
+
+            $lesson = Lesson::create([
                 'course_id' => $course->id,
-                'title' => 'الوحدة '.$u,
-                'order' => $u,
+                'unit_id' => $unit->id,
+                'title' => 'الدرس '.$l,
+                'order' => $l,
+                'is_free' => $l === 1,
             ]);
 
-            for ($l = 1; $l <= 2; $l++) {
-                $lesson = Lesson::create([
-                    'unit_id' => $unit->id,
-                    'title' => 'الدرس '.$l,
-                    'order' => $l,
-                    'is_free' => $l === 1,
-                ]);
-
-                Video::create([
-                    'lesson_id' => $lesson->id,
-                    'title' => 'فيديو الدرس '.$l,
-                    'url' => 'https://example.com/videos/placeholder.mp4',
-                    'order' => 1,
-                    'is_free' => $lesson->is_free,
-                    'is_downloadable' => true,
-                ]);
-            }
+            Video::create([
+                'lesson_id' => $lesson->id,
+                'title' => 'فيديو الدرس '.$l,
+                'url' => 'https://example.com/videos/placeholder.mp4',
+                'order' => 1,
+                'is_free' => $lesson->is_free,
+                'is_downloadable' => true,
+            ]);
         }
     }
 }

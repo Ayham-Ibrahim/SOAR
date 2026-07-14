@@ -18,7 +18,7 @@ class StoreUnitRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'course_id' => ['required', 'integer', 'exists:courses,id'],
+            'subject_id' => ['required', 'integer', 'exists:subjects,id'],
             'title' => ['required', 'string', 'max:255'],
             'order' => ['nullable', 'integer', 'min:0'],
         ];
@@ -38,7 +38,7 @@ class StoreUnitRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'course_id' => 'الدورة',
+            'subject_id' => 'المادة',
             'title' => 'عنوان الوحدة',
             'order' => 'الترتيب',
         ];

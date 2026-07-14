@@ -18,4 +18,12 @@ class Governorate extends Model
     {
         return $this->hasMany(School::class);
     }
+
+    /**
+     * Informational only — never used to gate or filter content.
+     */
+    public function students(): HasMany
+    {
+        return $this->hasMany(User::class);
+    }
 }

@@ -18,7 +18,7 @@ class UpdateSubjectRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category_id' => ['sometimes', 'integer', 'exists:categories,id'],
+            'sub_category_id' => ['sometimes', 'integer', 'exists:sub_categories,id'],
             'name' => ['sometimes', 'string', 'max:255'],
             'image' => ['nullable', 'image', 'max:4096'],
             'order' => ['nullable', 'integer', 'min:0'],
@@ -43,7 +43,7 @@ class UpdateSubjectRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'category_id' => 'الفئة',
+            'sub_category_id' => 'الفرع',
             'name' => 'اسم المادة',
             'image' => 'الصورة',
             'order' => 'الترتيب',

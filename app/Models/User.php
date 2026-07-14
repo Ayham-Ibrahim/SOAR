@@ -25,8 +25,8 @@ class User extends Authenticatable
         'name',
         'email',
         'phone',
+        'governorate_id',
         'school_id',
-        'branch_id',
         'gender',
         'age',
         'avatar',
@@ -67,14 +67,22 @@ class User extends Authenticatable
         return ! is_null($this->phone_verified_at);
     }
 
+    /**
+     * Informational only (reports/statistics) — never used to gate or filter
+     * content. The platform is open: every student can browse everything.
+     */
+    public function governorate(): BelongsTo
+    {
+        return $this->belongsTo(Governorate::class);
+    }
+
+    /**
+     * Informational only (reports/statistics) — never used to gate or filter
+     * content. The platform is open: every student can browse everything.
+     */
     public function school(): BelongsTo
     {
         return $this->belongsTo(School::class);
-    }
-
-    public function branch(): BelongsTo
-    {
-        return $this->belongsTo(Branch::class);
     }
 
     public function examAttempts(): HasMany

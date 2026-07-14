@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Course;
+use App\Models\Unit;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class StoreLessonRequest extends FormRequest
 {
@@ -18,10 +21,38 @@ class StoreLessonRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
             'unit_id' => ['required', 'integer', 'exists:units,id'],
             'title' => ['required', 'string', 'max:255'],
             'order' => ['nullable', 'integer', 'min:0'],
             'is_free' => ['nullable', 'boolean'],
+        ];
+    }
+
+    /**
+     * @return array<callable>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator) {
+                $courseId = $this->input('course_id');
+                $unitId = $this->input('unit_id');
+
+                if (! $courseId || ! $unitId) {
+                    return;
+                }
+
+                $course = Course::find($courseId);
+                $unit = Unit::find($unitId);
+
+                if ($course && $unit && $course->subject_id !== $unit->subject_id) {
+                    $validator->errors()->add(
+                        'unit_id',
+                        'الوحدة المحددة يجب أن تنتمي لنفس مادة الدورة المحددة.'
+                    );
+                }
+            },
         ];
     }
 
@@ -40,6 +71,7 @@ class StoreLessonRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'course_id' => 'الدورة',
             'unit_id' => 'الوحدة',
             'title' => 'عنوان الدرس',
             'order' => 'الترتيب',

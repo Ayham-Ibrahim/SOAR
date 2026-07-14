@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Governorate;
+use App\Services\Admin\GovernorateService;
 
 class GovernorateController extends Controller
 {
+    public function __construct(private readonly GovernorateService $governorateService)
+    {
+    }
+
     public function index()
     {
-        return $this->success(Governorate::orderBy('name')->get(), 'تم جلب المحافظات بنجاح');
+        return $this->success($this->governorateService->list(), 'تم جلب المحافظات بنجاح');
     }
 }

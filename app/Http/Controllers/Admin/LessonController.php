@@ -18,6 +18,7 @@ class LessonController extends Controller
     public function index(Request $request)
     {
         $lessons = $this->lessonService->list(
+            $request->integer('course_id') ?: null,
             $request->integer('unit_id') ?: null,
             $request->integer('per_page', 15)
         );
@@ -34,7 +35,7 @@ class LessonController extends Controller
 
     public function show(Lesson $lesson)
     {
-        return $this->success($lesson->load(['videos', 'files']), 'تم جلب بيانات الدرس بنجاح');
+        return $this->success($lesson->load(['course', 'unit', 'videos', 'files']), 'تم جلب بيانات الدرس بنجاح');
     }
 
     public function update(UpdateLessonRequest $request, Lesson $lesson)
