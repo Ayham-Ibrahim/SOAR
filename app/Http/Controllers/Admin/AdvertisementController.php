@@ -47,4 +47,11 @@ class AdvertisementController extends Controller
 
         return $this->success([], 'تم حذف الإعلان بنجاح');
     }
+
+    public function getAdsUser(Request $request)
+    {
+        $advertisements = $this->advertisementService->getAdsForUser($request->integer('per_page', 15));
+
+        return $this->paginate($advertisements, 'تم جلب الإعلانات بنجاح');
+    }
 }

@@ -12,6 +12,10 @@ class AdvertisementService
     {
         return Advertisement::query()->paginate($perPage);
     }
+    public function getAdsForUser(int $perPage = 15): LengthAwarePaginator
+    {
+        return Advertisement::query()->where('is_active',true)->paginate($perPage);
+    }
 
     public function create(array $data): Advertisement
     {
