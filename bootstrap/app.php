@@ -13,6 +13,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
+
+        $middleware->alias([
+            'parent' => \App\Http\Middleware\EnsureParentAccount::class,
+            'parent.student' => \App\Http\Middleware\EnsureStudentLinkedToParent::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
