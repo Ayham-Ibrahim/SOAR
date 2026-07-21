@@ -17,7 +17,10 @@ class StudentController extends Controller
 
     public function index(Request $request)
     {
-        $students = $this->studentService->list($request->integer('per_page', 15));
+        $students = $this->studentService->list(
+            $request->integer('per_page', 15),
+            $request->string('search')->value() ?: null
+        );
 
         return $this->paginate($students, 'تم جلب الطلاب بنجاح');
     }
