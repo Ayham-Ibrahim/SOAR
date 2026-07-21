@@ -6,6 +6,7 @@ namespace App\Models;
 use App\Models\Concerns\HasDevices;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -88,5 +89,15 @@ class User extends Authenticatable
     public function examAttempts(): HasMany
     {
         return $this->hasMany(ExamAttempt::class);
+    }
+
+    public function parents(): BelongsToMany
+    {
+        return $this->belongsToMany(ParentModel::class, 'parent_student', 'student_id', 'parent_id');
+    }
+
+    public function parentAccountRequests(): HasMany
+    {
+        return $this->hasMany(ParentAccountRequest::class, 'requested_by_student_id');
     }
 }
