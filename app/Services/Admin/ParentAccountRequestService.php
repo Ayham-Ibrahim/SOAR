@@ -24,7 +24,7 @@ class ParentAccountRequestService
      * re-hashing), link every given student plus the original requester,
      * and mark the request approved — all inside one transaction.
      */
-    public function approve(ParentAccountRequest $request, array $studentIds, User $admin): ParentModel
+    public function approve(ParentAccountRequest $request, array $studentIds = [], User $admin): ParentModel
     {
         return DB::transaction(function () use ($request, $studentIds, $admin) {
             $parent = ParentModel::create([

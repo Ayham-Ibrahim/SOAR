@@ -19,7 +19,7 @@ class ApproveParentAccountRequestRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'student_ids' => ['array', 'min:1'],
+            'student_ids' => ['array'],
             'student_ids.*' => ['integer', 'exists:users,id'],
         ];
     }
@@ -45,7 +45,7 @@ class ApproveParentAccountRequestRequest extends FormRequest
         return [
             'required' => 'حقل :attribute مطلوب.',
             'array' => 'حقل :attribute يجب أن يكون قائمة.',
-            'min' => 'حقل :attribute يجب أن يحتوي عنصر واحد على الأقل.',
+            // 'min' => 'حقل :attribute يجب أن يحتوي عنصر واحد على الأقل.',
             'integer' => 'حقل :attribute يجب أن يكون رقماً صحيحاً.',
             'exists' => 'القيمة المحددة لحقل :attribute غير موجودة.',
         ];
