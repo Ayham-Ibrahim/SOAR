@@ -135,6 +135,16 @@
             "key": "exam_attempt_id",
             "value": "",
             "type": "string"
+        },
+        {
+            "key": "subscription_request_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "parent_account_request_id",
+            "value": "",
+            "type": "string"
         }
     ],
     "item": [
@@ -7095,6 +7105,1679 @@
                                 }
                             },
                             "response": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "🚀 Sprint 4",
+            "description": "كل الـ endpoints المضافة حديثاً: نظام الاشتراكات والعروض (Subscriptions & Offers)، تحسينات الامتحانات (علامة لكل سؤال + مرفق للامتحان الكتابي)، ونظام طلبات إنشاء حسابات أولياء الأمور. مقسّم بنفس تقسيم بقية الكولكشن (Admin/Student/Parent) — نفس الترتيب والتوثيق المتّبع بباقي المجلدات.\n\n⚠️ **ملاحظة:** مجلدَي Admin → Packages وAdmin → Offers الأصليين (خارج هذا المجلد) قديمين ولم يعودا يعكسان الباك اند الفعلي — تم حذف الـ Package والـ Offer القديمين بالكامل من الباك اند واستبدالهما بنظام العروض الجديد الموثّق هون تحت Sprint 4 → Admin → Offers (Bundles).",
+            "item": [
+                {
+                    "name": "👨‍💼 Admin",
+                    "description": "عمليات الأدمن الجديدة: العروض (باقات دورات)، مراجعة طلبات الاشتراك (مباشر/عرض)، إعدادات الدفع، مراجعة طلبات إنشاء حسابات أولياء الأمور، وربط الطلاب بأولياء أمورهم مباشرة.",
+                    "item": [
+                        {
+                            "name": "Offers (Bundles)",
+                            "description": "إدارة العروض (باقات دورات مجمّعة بسعر واحد). ⚠️ **قاعدة توقيت مهمة:** `offer_starts_at`/`offer_ends_at` تتحكم فقط بفترة الشراء المسموحة؛ مدة بقاء الوصول مفتوح لكل دورة هي `access_duration_days` وتُحسب من لحظة موافقة الأدمن على طلب الاشتراك، وليس لها أي علاقة بـ `offer_ends_at` — أبداً.",
+                            "item": [
+                                {
+                                    "name": "List Offers",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/offers?per_page=15",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "offers"
+                                            ],
+                                            "query": [
+                                                {
+                                                    "key": "per_page",
+                                                    "value": "15"
+                                                }
+                                            ]
+                                        },
+                                        "description": "كل العروض (فعّالة وغير فعّالة).",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                },
+                                {
+                                    "name": "Create Offer",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/offers",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "offers"
+                                            ]
+                                        },
+                                        "description": "ينشئ عرضاً جديداً ويربطه بمجموعة دورات دفعة واحدة.",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "mode": "formdata",
+                                            "formdata": [
+                                                {
+                                                    "key": "title",
+                                                    "type": "text",
+                                                    "description": "string, required, max:255",
+                                                    "value": "عرض فيزياء وكيمياء"
+                                                },
+                                                {
+                                                    "key": "description",
+                                                    "type": "text",
+                                                    "description": "string, nullable",
+                                                    "value": "اشترك بمادتين بسعر مخفّض"
+                                                },
+                                                {
+                                                    "key": "image",
+                                                    "type": "file",
+                                                    "description": "file, nullable, image, max 4MB",
+                                                    "src": []
+                                                },
+                                                {
+                                                    "key": "price",
+                                                    "type": "text",
+                                                    "description": "numeric, required, min:0",
+                                                    "value": "75000"
+                                                },
+                                                {
+                                                    "key": "offer_starts_at",
+                                                    "type": "text",
+                                                    "description": "date, required — بداية فترة الشراء",
+                                                    "value": "2026-07-01 00:00:00"
+                                                },
+                                                {
+                                                    "key": "offer_ends_at",
+                                                    "type": "text",
+                                                    "description": "date, required, after:offer_starts_at — نهاية فترة الشراء",
+                                                    "value": "2026-07-10 23:59:59"
+                                                },
+                                                {
+                                                    "key": "access_duration_days",
+                                                    "type": "text",
+                                                    "description": "integer, required, min:1 — عدد أيام بقاء كل دورة مفتوحة من لحظة الموافقة (مستقل تماماً عن فترة الشراء أعلاه)",
+                                                    "value": "365"
+                                                },
+                                                {
+                                                    "key": "is_active",
+                                                    "type": "text",
+                                                    "description": "boolean, nullable",
+                                                    "value": "true"
+                                                },
+                                                {
+                                                    "key": "course_ids[]",
+                                                    "type": "text",
+                                                    "description": "array of integer, required, min:1 — أضف حقل course_ids[] لكل دورة تريد ضمّها بالعرض",
+                                                    "value": "{{course_id}}"
+                                                },
+                                                {
+                                                    "key": "course_ids[]",
+                                                    "type": "text",
+                                                    "description": "مثال لدورة ثانية بنفس العرض",
+                                                    "value": "2"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": [],
+                                    "event": [
+                                        {
+                                            "listen": "test",
+                                            "script": {
+                                                "type": "text/javascript",
+                                                "exec": [
+                                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                                    "    const json = pm.response.json();",
+                                                    "    if (json.data && json.data.id) {",
+                                                    "        pm.collectionVariables.set('offer_id', json.data.id);",
+                                                    "        console.log('Saved id to {{offer_id}}');",
+                                                    "    }",
+                                                    "}"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "name": "Get Offer",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/offers/{{offer_id}}",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "offers",
+                                                "{{offer_id}}"
+                                            ]
+                                        },
+                                        "description": "تفاصيل عرض واحد مع دوراته المضمّنة (`courses`).",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                },
+                                {
+                                    "name": "Update Offer",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/offers/{{offer_id}}?_method=PUT",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "offers",
+                                                "{{offer_id}}"
+                                            ],
+                                            "query": [
+                                                {
+                                                    "key": "_method",
+                                                    "value": "PUT"
+                                                }
+                                            ]
+                                        },
+                                        "description": "يحدّث عرضاً موجوداً (كل الحقول اختيارية).",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "mode": "formdata",
+                                            "formdata": [
+                                                {
+                                                    "key": "title",
+                                                    "type": "text",
+                                                    "description": "string, sometimes",
+                                                    "value": "عرض محدّث"
+                                                },
+                                                {
+                                                    "key": "price",
+                                                    "type": "text",
+                                                    "description": "numeric, sometimes",
+                                                    "value": "70000"
+                                                },
+                                                {
+                                                    "key": "course_ids[]",
+                                                    "type": "text",
+                                                    "description": "array, sometimes — إرساله يستبدل قائمة الدورات بالكامل (sync، مو إضافة)",
+                                                    "value": "{{course_id}}"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                },
+                                {
+                                    "name": "Delete Offer",
+                                    "request": {
+                                        "method": "DELETE",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/offers/{{offer_id}}",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "offers",
+                                                "{{offer_id}}"
+                                            ]
+                                        },
+                                        "description": "يحذف العرض نهائياً.",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Subscription Requests (Review & Approval)",
+                            "description": "مراجعة طلبات اشتراك الطلاب (اشتراك مباشر بدورة واحدة، أو اشتراك بعرض/باقة كاملة) والموافقة عليها أو رفضها.",
+                            "item": [
+                                {
+                                    "name": "List Subscription Requests",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/subscription-requests?status=pending&per_page=15",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "subscription-requests"
+                                            ],
+                                            "query": [
+                                                {
+                                                    "key": "status",
+                                                    "value": "pending"
+                                                },
+                                                {
+                                                    "key": "per_page",
+                                                    "value": "15"
+                                                }
+                                            ]
+                                        },
+                                        "description": "**Query Filters:**\n\n| Param | النوع | ملاحظات |\n|---|---|---|\n| status | string | enum: `pending` \\| `approved` \\| `rejected` |\n| per_page | integer | افتراضي 15 |",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                },
+                                {
+                                    "name": "Get Subscription Request",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/subscription-requests/{{subscription_request_id}}",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "subscription-requests",
+                                                "{{subscription_request_id}}"
+                                            ]
+                                        },
+                                        "description": "تفاصيل طلب واحد. إذا `course_id` معبّأ فهو طلب اشتراك مباشر، وإذا `offer_id` معبّأ (و`course_id` فاضي) فهو طلب اشتراك بعرض.",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                },
+                                {
+                                    "name": "Approve Direct Subscription Request",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/subscription-requests/{{subscription_request_id}}/approve",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "subscription-requests",
+                                                "{{subscription_request_id}}",
+                                                "approve"
+                                            ]
+                                        },
+                                        "description": "**لطلبات الاشتراك المباشر فقط (course_id معبّأ بالطلب).**\n\n| الحقل | النوع | إلزامي | ملاحظات |\n|---|---|---|---|\n| access_ends_at | date | نعم | after:today — الأدمن يحدد تاريخ انتهاء الوصول يدوياً |\n\nينشئ صف `subscription` واحد يفتح الدورة من لحظة الموافقة لحد هالتاريخ.",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"access_ends_at\": \"2026-12-31\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "response": []
+                                },
+                                {
+                                    "name": "Approve Offer Subscription Request",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/subscription-requests/{{subscription_request_id}}/approve",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "subscription-requests",
+                                                "{{subscription_request_id}}",
+                                                "approve"
+                                            ]
+                                        },
+                                        "description": "**لطلبات اشتراك العروض فقط (offer_id معبّأ بالطلب). لا ترسل access_ends_at أبداً هون — الحقل ممنوع (`prohibited`) وإرساله يرجع 422.**\n\nينشئ صف `subscription` واحد **لكل دورة** ضمن العرض، كلها بمدة `access_duration_days` **من لحظة الموافقة بالضبط** — بغض النظر متى بينتهي `offer_ends_at` (راجع وصف مجلد Admin → Offers أعلاه لتفصيل هالقاعدة والمثال الكامل).",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "[]",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "response": []
+                                },
+                                {
+                                    "name": "Reject Subscription Request",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/subscription-requests/{{subscription_request_id}}/reject",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "subscription-requests",
+                                                "{{subscription_request_id}}",
+                                                "reject"
+                                            ]
+                                        },
+                                        "description": "| الحقل | النوع | إلزامي |\n|---|---|---|\n| rejection_reason | string | نعم |",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"rejection_reason\": \"صورة الإيصال غير واضحة\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "response": []
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Settings (Payment Info)",
+                            "description": "إدارة الإعدادات العامة (key/value) — تُستخدم حالياً لتخزين معلومات الدفع (بنك/تحويل) المعروضة للطالب قبل رفع إيصال الاشتراك.",
+                            "item": [
+                                {
+                                    "name": "List Settings",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/settings",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "settings"
+                                            ]
+                                        },
+                                        "description": "كل الإعدادات المخزّنة حالياً.",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                },
+                                {
+                                    "name": "Get Setting",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/settings/payment_info",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "settings",
+                                                "payment_info"
+                                            ]
+                                        },
+                                        "description": "إعداد واحد حسب المفتاح (key) — المفتاح يُستخدم بالمسار مباشرة بدل id رقمي.",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                },
+                                {
+                                    "name": "Update Setting (Payment Info)",
+                                    "request": {
+                                        "method": "PUT",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/settings/payment_info",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "settings",
+                                                "payment_info"
+                                            ]
+                                        },
+                                        "description": "**Upsert:** ينشئ المفتاح لو مو موجود أصلاً أو يحدّثه لو موجود — ما في حاجة تنشئه أول مرة بشكل منفصل.\n\n| الحقل | النوع | إلزامي | ملاحظات |\n|---|---|---|---|\n| value | string | لا | نص حر، بالعادة JSON مُرمّز كنص (متل المثال) عشان Get Payment Info بمجلد Student يفكّه تلقائياً لكائن جاهز |",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"value\": \"{\\\"bank_name\\\":\\\"\\\\u0628\\\\u0646\\\\u0643 \\\\u0633\\\\u0648\\\\u0631\\\\u064a\\\\u0627\\\",\\\"account_number\\\":\\\"123456789\\\",\\\"iban\\\":\\\"SY1234567890\\\",\\\"instructions\\\":\\\"\\\\u062d\\\\u0648\\\\u0651\\\\u0644 \\\\u0627\\\\u0644\\\\u0645\\\\u0628\\\\u0644\\\\u063a \\\\u0648\\\\u0627\\\\u0631\\\\u0641\\\\u0639 \\\\u0635\\\\u0648\\\\u0631\\\\u0629 \\\\u0627\\\\u0644\\\\u0625\\\\u064a\\\\u0635\\\\u0627\\\\u0644\\\"}\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "response": []
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Parent Account Requests (Review & Approval)",
+                            "description": "مراجعة طلبات إنشاء حسابات أولياء الأمور اللي يرسلها الطلاب، والموافقة عليها (تنشئ حساب ولي الأمر فعلياً) أو رفضها.",
+                            "item": [
+                                {
+                                    "name": "List Parent Account Requests",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/parent-requests?status=pending&per_page=15",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "parent-requests"
+                                            ],
+                                            "query": [
+                                                {
+                                                    "key": "status",
+                                                    "value": "pending"
+                                                },
+                                                {
+                                                    "key": "per_page",
+                                                    "value": "15"
+                                                }
+                                            ]
+                                        },
+                                        "description": "**Query Filters:**\n\n| Param | النوع | ملاحظات |\n|---|---|---|\n| status | string | enum: `pending` \\| `approved` \\| `rejected` |\n| per_page | integer | افتراضي 15 |",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                },
+                                {
+                                    "name": "Get Parent Account Request",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/parent-requests/{{parent_account_request_id}}",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "parent-requests",
+                                                "{{parent_account_request_id}}"
+                                            ]
+                                        },
+                                        "description": "تفاصيل طلب واحد مع بيانات الطالب صاحب الطلب. كلمة المرور لا تظهر أبداً بأي استجابة.",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                },
+                                {
+                                    "name": "Approve Parent Account Request",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/parent-requests/{{parent_account_request_id}}/approve",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "parent-requests",
+                                                "{{parent_account_request_id}}",
+                                                "approve"
+                                            ]
+                                        },
+                                        "description": "ينشئ حساب ولي الأمر فعلياً (بنفس كلمة المرور المُشفَّرة اللي أدخلها الطالب بالطلب — بدون أي تدخل أو تصفير من الأدمن) ويربطه بكل الطلاب بـ`student_ids`. **الطالب صاحب الطلب الأصلي يُضاف تلقائياً حتى لو ما ذكرته بالقائمة.**\n\n| الحقل | النوع | إلزامي | ملاحظات |\n|---|---|---|---|\n| student_ids | array | نعم | min:1 |\n| student_ids.* | integer | نعم | exists:users,id |",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"student_ids\": [\n        \"{{student_id}}\"\n    ]\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "response": []
+                                },
+                                {
+                                    "name": "Reject Parent Account Request",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/parent-requests/{{parent_account_request_id}}/reject",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "parent-requests",
+                                                "{{parent_account_request_id}}",
+                                                "reject"
+                                            ]
+                                        },
+                                        "description": "| الحقل | النوع | إلزامي |\n|---|---|---|\n| rejection_reason | string | نعم |",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"rejection_reason\": \"رقم هاتف ولي الأمر غير صحيح\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "response": []
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Parent ↔ Student Links",
+                            "description": "ربط/فك ربط طلاب بحساب ولي أمر موجود مباشرة (بدون المرور بطلب) — مثلاً لإضافة ابن إضافي لولي أمر عنده حساب فعلاً.",
+                            "item": [
+                                {
+                                    "name": "Add Students to Parent",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/parents/{{parent_id}}/students",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "parents",
+                                                "{{parent_id}}",
+                                                "students"
+                                            ]
+                                        },
+                                        "description": "يضيف طلاب لولي الأمر **بدون** فك ربط أي طالب مرتبط مسبقاً (إضافة فقط، مو استبدال/sync).\n\n| الحقل | النوع | إلزامي | ملاحظات |\n|---|---|---|---|\n| student_ids | array | نعم | min:1 |\n| student_ids.* | integer | نعم | exists:users,id |",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"student_ids\": [\n        \"{{student_id}}\"\n    ]\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "response": []
+                                },
+                                {
+                                    "name": "Remove Student from Parent",
+                                    "request": {
+                                        "method": "DELETE",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/parents/{{parent_id}}/students/{{student_id}}",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "parents",
+                                                "{{parent_id}}",
+                                                "students",
+                                                "{{student_id}}"
+                                            ]
+                                        },
+                                        "description": "يفك ربط طالب واحد من ولي الأمر فقط (لا يحذف حساب الطالب ولا حساب ولي الأمر).",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Exams: Points & Attachment",
+                            "description": "توضيح حقلين جديدين على نظام الامتحانات: `points` لكل سؤال (وزن العلامة)، و`attachment` للامتحان نفسه (ملف/صورة السؤال الكتابي). كلا الحقلين موجودين أيضاً بمجلدَي Admin → Questions وAdmin → Exams الأصليين، مذكورين هون للتوضيح السريع فقط.",
+                            "item": [
+                                {
+                                    "name": "Create Question (with Points)",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/questions",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "questions"
+                                            ]
+                                        },
+                                        "description": "**حقل جديد: `points`** — علامة السؤال (integer, nullable, min:1 — افتراضي 1 إذا ما أُرسل). علامة المحاولة النهائية صارت وزنية: `earned_points / total_points × 100`، بدل نسبة عدد الأسئلة الصحيحة البسيطة القديمة.",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"exam_id\": \"{{exam_id}}\",\n    \"text\": \"ما ناتج 2 + 2؟\",\n    \"points\": 3,\n    \"order\": 1\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "response": []
+                                },
+                                {
+                                    "name": "Create Written Exam (with Attachment)",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/admin/exams",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "admin",
+                                                "exams"
+                                            ]
+                                        },
+                                        "description": "**حقل جديد: `attachment`** — الملف/الصورة اللي فيها نص السؤال الكتابي يرفعه الأدمن هون. مختلف كلياً عن `submission_file` اللي يرفعه الطالب كحل بمجلد Exam Attempts (Take & Results).",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "mode": "formdata",
+                                            "formdata": [
+                                                {
+                                                    "key": "course_id",
+                                                    "type": "text",
+                                                    "description": "integer, required",
+                                                    "value": "{{course_id}}"
+                                                },
+                                                {
+                                                    "key": "title",
+                                                    "type": "text",
+                                                    "description": "string, required",
+                                                    "value": "امتحان الفصل الأول"
+                                                },
+                                                {
+                                                    "key": "type",
+                                                    "type": "text",
+                                                    "description": "string — enum: mcq | written",
+                                                    "value": "written"
+                                                },
+                                                {
+                                                    "key": "attachment",
+                                                    "type": "file",
+                                                    "description": "file, nullable, mimes:jpeg,jpg,png,pdf, max 10MB — صورة أو PDF لسؤال الامتحان الكتابي. **حقل جديد** — منفصل تماماً عن submission_file (حل الطالب المرفوع بمجلد Student → Subscription... لا، بمجلد Exam Attempts).",
+                                                    "src": []
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": [],
+                                    "event": [
+                                        {
+                                            "listen": "test",
+                                            "script": {
+                                                "type": "text/javascript",
+                                                "exec": [
+                                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                                    "    const json = pm.response.json();",
+                                                    "    if (json.data && json.data.id) {",
+                                                    "        pm.collectionVariables.set('exam_id', json.data.id);",
+                                                    "        console.log('Saved id to {{exam_id}}');",
+                                                    "    }",
+                                                    "}"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "🎓 Student",
+                    "description": "عمليات الطالب الجديدة: تصفح العروض، طلب الاشتراك (مباشر بدورة أو بعرض كامل)، معلومات الدفع، وطلب إنشاء حساب ولي أمر.",
+                    "item": [
+                        {
+                            "name": "Offers (Browse)",
+                            "description": "تصفح العروض المتاحة للشراء حالياً.",
+                            "item": [
+                                {
+                                    "name": "List Offers",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/offers?per_page=15",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "offers"
+                                            ],
+                                            "query": [
+                                                {
+                                                    "key": "per_page",
+                                                    "value": "15"
+                                                }
+                                            ]
+                                        },
+                                        "description": "كل العروض الفعّالة (`is_active=true`).",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                },
+                                {
+                                    "name": "Get Offer",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/offers/{{offer_id}}",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "offers",
+                                                "{{offer_id}}"
+                                            ]
+                                        },
+                                        "description": "تفاصيل عرض واحد مع الدورات المضمّنة (`courses`) — تحقق من `offer_starts_at`/`offer_ends_at` قبل محاولة الاشتراك.",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Subscription Requests",
+                            "description": "طلب الاشتراك بدورة واحدة مباشرة أو بعرض/باقة كاملة، ومتابعة حالة طلباتك.",
+                            "item": [
+                                {
+                                    "name": "Submit Direct Course Subscription",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/subscription-requests",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "subscription-requests"
+                                            ]
+                                        },
+                                        "description": "يرسل طلب اشتراك بدورة واحدة، بانتظار مراجعة الأدمن.",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "mode": "formdata",
+                                            "formdata": [
+                                                {
+                                                    "key": "course_id",
+                                                    "type": "text",
+                                                    "description": "integer, required, exists:courses,id",
+                                                    "value": "{{course_id}}"
+                                                },
+                                                {
+                                                    "key": "receipt_image",
+                                                    "type": "file",
+                                                    "description": "file, required, image, max 4MB — صورة إيصال التحويل",
+                                                    "src": []
+                                                },
+                                                {
+                                                    "key": "amount",
+                                                    "type": "text",
+                                                    "description": "numeric, nullable — المبلغ المحوّل",
+                                                    "value": "50000"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": [],
+                                    "event": [
+                                        {
+                                            "listen": "test",
+                                            "script": {
+                                                "type": "text/javascript",
+                                                "exec": [
+                                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                                    "    const json = pm.response.json();",
+                                                    "    if (json.data && json.data.id) {",
+                                                    "        pm.collectionVariables.set('subscription_request_id', json.data.id);",
+                                                    "        console.log('Saved id to {{subscription_request_id}}');",
+                                                    "    }",
+                                                    "}"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "name": "Submit Offer Subscription",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/offer-subscription-requests",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "offer-subscription-requests"
+                                            ]
+                                        },
+                                        "description": "يرسل طلب اشتراك بعرض/باقة كاملة. **يرجع 422 (`العرض غير متاح`) إذا الوقت الحالي خارج فترة `offer_starts_at`–`offer_ends_at`** — تحقق من فترة العرض أولاً بمجلد Offers (Browse).",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "mode": "formdata",
+                                            "formdata": [
+                                                {
+                                                    "key": "offer_id",
+                                                    "type": "text",
+                                                    "description": "integer, required, exists:offers,id",
+                                                    "value": "{{offer_id}}"
+                                                },
+                                                {
+                                                    "key": "receipt_image",
+                                                    "type": "file",
+                                                    "description": "file, required, image, max 4MB",
+                                                    "src": []
+                                                },
+                                                {
+                                                    "key": "amount",
+                                                    "type": "text",
+                                                    "description": "numeric, nullable",
+                                                    "value": "75000"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": [],
+                                    "event": [
+                                        {
+                                            "listen": "test",
+                                            "script": {
+                                                "type": "text/javascript",
+                                                "exec": [
+                                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                                    "    const json = pm.response.json();",
+                                                    "    if (json.data && json.data.id) {",
+                                                    "        pm.collectionVariables.set('subscription_request_id', json.data.id);",
+                                                    "        console.log('Saved id to {{subscription_request_id}}');",
+                                                    "    }",
+                                                    "}"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "name": "My Subscription Requests",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/subscription-requests?per_page=15",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "subscription-requests"
+                                            ],
+                                            "query": [
+                                                {
+                                                    "key": "per_page",
+                                                    "value": "15"
+                                                }
+                                            ]
+                                        },
+                                        "description": "طلباتك أنت فقط (مباشرة وعروض مع بعض بنفس القائمة)، الأحدث أولاً.",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Payment Info",
+                            "description": "معلومات الدفع (بنك/تحويل) المطلوب عرضها للطالب قبل رفع إيصال الاشتراك.",
+                            "item": [
+                                {
+                                    "name": "Get Payment Info",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/settings/payment-info",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "settings",
+                                                "payment-info"
+                                            ]
+                                        },
+                                        "description": "يرجع القيمة مفكوكة كـ object جاهز للاستخدام مباشرة بالواجهة (مو نص JSON خام).",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Parent Account Requests",
+                            "description": "طلب إنشاء حساب ولي أمر جديد ليُربط بحسابك، ومتابعة حالة طلبك.",
+                            "item": [
+                                {
+                                    "name": "Submit Parent Account Request",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/student/parent-requests",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "student",
+                                                "parent-requests"
+                                            ]
+                                        },
+                                        "description": "كلمة المرور تُخزَّن مُشفّرة فوراً ولا تظهر بأي استجابة أبداً. **422** إذا عندك طلب pending موجود مسبقاً، أو إذا رقم هاتف ولي الأمر مستخدم بحساب ولي أمر فعّال أو بطلب pending تاني.",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"parent_name\": \"محمد أحمد\",\n    \"parent_phone\": \"+963944555666\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "response": [],
+                                    "event": [
+                                        {
+                                            "listen": "test",
+                                            "script": {
+                                                "type": "text/javascript",
+                                                "exec": [
+                                                    "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                                                    "    const json = pm.response.json();",
+                                                    "    if (json.data && json.data.id) {",
+                                                    "        pm.collectionVariables.set('parent_account_request_id', json.data.id);",
+                                                    "        console.log('Saved id to {{parent_account_request_id}}');",
+                                                    "    }",
+                                                    "}"
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "name": "My Parent Account Requests",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/student/parent-requests?per_page=15",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "student",
+                                                "parent-requests"
+                                            ],
+                                            "query": [
+                                                {
+                                                    "key": "per_page",
+                                                    "value": "15"
+                                                }
+                                            ]
+                                        },
+                                        "description": "طلباتك أنت فقط، مع الحالة الحالية (بدون كلمة المرور طبعاً).",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "👪 Parent",
+                    "description": "عمليات ولي الأمر الجديدة: قائمة الأبناء الفعلية، ونتائج امتحانات كل ابن.",
+                    "item": [
+                        {
+                            "name": "Children",
+                            "description": "قائمة الأبناء المرتبطين فعلياً بحساب ولي الأمر (ربط حقيقي بقاعدة البيانات — الميزة اللي كانت غير مبنية سابقاً).",
+                            "item": [
+                                {
+                                    "name": "List My Children",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/parent/children",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "parent",
+                                                "children"
+                                            ]
+                                        },
+                                        "description": "الطلاب المرتبطين بحسابك (id, name, phone, avatar).",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Exam Results (per Child)",
+                            "description": "نتائج امتحانات طالب معيّن مرتبط بحسابك — نفس البيانات اللي يشوفها الطالب لنفسه بمجلد Student → Exam Attempts. **403** إذا الطالب غير مرتبط بحسابك (يجب يكون بقائمة Children أولاً).",
+                            "item": [
+                                {
+                                    "name": "List Child Exam Results",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/parent/students/{{student_id}}/exam-attempts?exam_id={{exam_id}}&per_page=15",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "parent",
+                                                "students",
+                                                "{{student_id}}",
+                                                "exam-attempts"
+                                            ],
+                                            "query": [
+                                                {
+                                                    "key": "exam_id",
+                                                    "value": "{{exam_id}}"
+                                                },
+                                                {
+                                                    "key": "per_page",
+                                                    "value": "15"
+                                                }
+                                            ]
+                                        },
+                                        "description": "**Query Filters:**\n\n| Param | النوع | ملاحظات |\n|---|---|---|\n| exam_id | integer | فلترة حسب امتحان (اختياري) |\n| per_page | integer | افتراضي 15 |",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                },
+                                {
+                                    "name": "Get Child Exam Result Detail",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/parent/students/{{student_id}}/exam-attempts/{{exam_attempt_id}}",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "parent",
+                                                "students",
+                                                "{{student_id}}",
+                                                "exam-attempts",
+                                                "{{exam_attempt_id}}"
+                                            ]
+                                        },
+                                        "description": "تفاصيل محاولة واحدة مع كل إجابة (`answers.question`, `answers.choice`).",
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{token}}",
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "response": []
+                                }
+                            ]
                         }
                     ]
                 }
