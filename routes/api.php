@@ -75,6 +75,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::middleware(['auth:sanctum', 'parent'])->prefix('parent')->group(function () {
     Route::get('children', [ParentAppController::class, 'children']);
+
+    // Reference implementation for the mandatory student_id authorization
+    // pattern — see the docblock on ParentController::studentSummary().
+    Route::middleware('parent.student')->get('students/{student_id}/summary', [ParentAppController::class, 'studentSummary']);
 });
 
 Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
