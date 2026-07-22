@@ -19,7 +19,7 @@ class ApproveParentAccountRequestRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'student_ids' => ['required', 'array', 'min:1'],
+            'student_ids' => ['nullable', 'array', 'min:1'],
             'student_ids.*' => ['integer', 'exists:users,id'],
         ];
     }
