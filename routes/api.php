@@ -122,11 +122,15 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
         Route::post('parent-requests/{parent_account_request}/approve', [AdminParentAccountRequestController::class, 'approve']);
         Route::post('parent-requests/{parent_account_request}/reject', [AdminParentAccountRequestController::class, 'reject']);
 
-        Route::apiResource('subscription-requests', AdminSubscriptionRequestController::class)->only(['index', 'show']);
+        Route::apiResource('subscription-requests', AdminSubscriptionRequestController::class)
+            ->parameters(['subscription-requests' => 'subscription_request'])
+            ->only(['index', 'show']);
         Route::post('subscription-requests/{subscription_request}/approve', [AdminSubscriptionRequestController::class, 'approve']);
         Route::post('subscription-requests/{subscription_request}/reject', [AdminSubscriptionRequestController::class, 'reject']);
 
-        Route::apiResource('settings', AdminSettingController::class)->only(['index', 'show', 'update']);
+        Route::apiResource('settings', AdminSettingController::class)
+            ->parameters(['settings' => 'key'])
+            ->only(['index', 'show', 'update']);
     });
 
 Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])->group(function () {
