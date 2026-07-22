@@ -145,7 +145,7 @@ class ParentAccountRequestTest extends TestCase
 
         Sanctum::actingAs($parent, ['access-api']);
 
-        $this->getJson("/api/parent/students/{$linkedStudent->id}/summary")->assertStatus(200);
-        $this->getJson("/api/parent/students/{$otherStudent->id}/summary")->assertStatus(403);
+        $this->getJson("/api/parent/students/{$linkedStudent->id}/exam-attempts")->assertStatus(200);
+        $this->getJson("/api/parent/students/{$otherStudent->id}/exam-attempts")->assertStatus(403);
     }
 }

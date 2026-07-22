@@ -20,6 +20,7 @@ class StoreQuestionRequest extends FormRequest
         return [
             'exam_id' => ['required', 'integer', 'exists:exams,id'],
             'text' => ['required', 'string'],
+            'points' => ['nullable', 'integer', 'min:1'],
             'order' => ['nullable', 'integer', 'min:0'],
         ];
     }
@@ -40,6 +41,7 @@ class StoreQuestionRequest extends FormRequest
         return [
             'exam_id' => 'الامتحان',
             'text' => 'نص السؤال',
+            'points' => 'علامة السؤال',
             'order' => 'الترتيب',
         ];
     }

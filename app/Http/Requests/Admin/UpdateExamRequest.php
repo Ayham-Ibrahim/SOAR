@@ -22,6 +22,7 @@ class UpdateExamRequest extends FormRequest
             'title' => ['sometimes', 'string', 'max:255'],
             'type' => ['nullable', 'string', 'in:mcq,written'],
             'description' => ['nullable', 'string'],
+            'attachment' => ['nullable', 'file', 'mimes:jpeg,jpg,png,pdf', 'max:10240'],
             'duration_minutes' => ['nullable', 'integer', 'min:1'],
             'passing_score' => ['nullable', 'integer', 'min:0', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
@@ -39,6 +40,8 @@ class UpdateExamRequest extends FormRequest
             'in' => 'قيمة :attribute غير صحيحة.',
             'min' => 'حقل :attribute يجب ألا يقل عن :min.',
             'max' => 'حقل :attribute يجب ألا يزيد عن :max.',
+            'file' => 'حقل :attribute يجب أن يكون ملفاً.',
+            'mimes' => 'حقل :attribute يجب أن يكون من نوع: :values.',
         ];
     }
 
@@ -49,6 +52,7 @@ class UpdateExamRequest extends FormRequest
             'title' => 'عنوان الامتحان',
             'type' => 'نوع الامتحان',
             'description' => 'الوصف',
+            'attachment' => 'ملف/صورة السؤال',
             'duration_minutes' => 'المدة (بالدقائق)',
             'passing_score' => 'علامة النجاح (%)',
             'is_active' => 'الحالة (فعّال)',
