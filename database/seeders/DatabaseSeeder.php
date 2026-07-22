@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
         $this->call(AcademicContentSeeder::class);
         $this->call(AdminSeeder::class);
         $this->call(ParentAccountRequestSeeder::class);
+        $this->call(SubscriptionSeeder::class);
 
         // User::factory(10)->create();
 
