@@ -9,7 +9,8 @@ use App\Http\Controllers\Admin\LessonController;
 use App\Http\Controllers\Admin\NewsController as AdminNewsController;
 use App\Http\Controllers\Admin\OfferController;
 use App\Http\Controllers\Admin\PackageController;
-use App\Http\Controllers\Admin\ParentController;
+use App\Http\Controllers\Admin\ParentAccountRequestController as AdminParentAccountRequestController;
+use App\Http\Controllers\Admin\ParentController as AdminParentController;
 use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\TeacherController;
@@ -22,6 +23,8 @@ use App\Http\Controllers\ExamAttemptController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\GovernorateController;
 use App\Http\Controllers\NewsController;
+use App\Http\Controllers\ParentAccountRequestController;
+use App\Http\Controllers\ParentController as ParentAppController;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\SubCategoryController;
 use App\Http\Controllers\SubjectController;
@@ -64,13 +67,27 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Exam taking & results: scoped to the authenticated student.
     Route::apiResource('exam-attempts', ExamAttemptController::class)->only(['index', 'store', 'show']);
+
+    // A student requesting a parent account be created for them. Reviewed by
+    // an admin (see admin/parent-requests below).
+    Route::apiResource('student/parent-requests', ParentAccountRequestController::class)->only(['index', 'store']);
+});
+
+Route::middleware(['auth:sanctum', 'parent'])->prefix('parent')->group(function () {
+    Route::get('children', [ParentAppController::class, 'children']);
+
+    // Reference implementation for the mandatory student_id authorization
+    // pattern — see the docblock on ParentController::studentSummary().
+    Route::middleware('parent.student')->get('students/{student_id}/summary', [ParentAppController::class, 'studentSummary']);
 });
 
 Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
     ->prefix('admin')
     ->group(function () {
         Route::apiResource('students', StudentController::class);
-        Route::apiResource('parents', ParentController::class);
+        Route::apiResource('parents', AdminParentController::class);
+        Route::post('parents/{parent}/students', [AdminParentController::class, 'addStudents']);
+        Route::delete('parents/{parent}/students/{studentId}', [AdminParentController::class, 'removeStudent']);
         Route::apiResource('teachers', TeacherController::class);
         Route::apiResource('units', UnitController::class);
         Route::apiResource('lessons', LessonController::class);
@@ -86,6 +103,12 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
 
         Route::apiResource('exam-attempts', AdminExamAttemptController::class)->only(['index', 'show']);
         Route::patch('exam-attempts/{exam_attempt}/grade', [AdminExamAttemptController::class, 'grade']);
+
+        Route::apiResource('parent-requests', AdminParentAccountRequestController::class)
+            ->parameters(['parent-requests' => 'parent_account_request'])
+            ->only(['index', 'show']);
+        Route::post('parent-requests/{parent_account_request}/approve', [AdminParentAccountRequestController::class, 'approve']);
+        Route::post('parent-requests/{parent_account_request}/reject', [AdminParentAccountRequestController::class, 'reject']);
     });
 
 Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])->group(function () {

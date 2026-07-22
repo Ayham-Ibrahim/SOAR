@@ -9,9 +9,14 @@ use Illuminate\Support\Facades\Hash;
 
 class StudentService
 {
-    public function list(int $perPage = 15): LengthAwarePaginator
+    public function list(int $perPage = 15, ?string $search = null): LengthAwarePaginator
     {
-        return User::query()->latest()->paginate($perPage);
+        return User::query()
+            ->when($search, fn ($query) => $query->where(fn ($q) => $q
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('phone', 'like', "%{$search}%")))
+            ->latest()
+            ->paginate($perPage);
     }
 
     public function create(array $data): User

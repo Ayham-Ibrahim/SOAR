@@ -39,4 +39,20 @@ class ParentService
         $parent->tokens()->delete();
         $parent->delete();
     }
+
+    /**
+     * Add students to this parent without detaching any existing links —
+     * removal is a separate, explicit action (unlinkStudent).
+     */
+    public function attachStudents(ParentModel $parent, array $studentIds): ParentModel
+    {
+        $parent->students()->syncWithoutDetaching($studentIds);
+
+        return $parent->fresh('students');
+    }
+
+    public function unlinkStudent(ParentModel $parent, int $studentId): void
+    {
+        $parent->students()->detach($studentId);
+    }
 }
