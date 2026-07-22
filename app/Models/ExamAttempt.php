@@ -18,6 +18,8 @@ class ExamAttempt extends Model
         'score',
         'total_questions',
         'correct_answers',
+        'total_points',
+        'earned_points',
         'submission_file',
         'feedback',
         'graded_at',

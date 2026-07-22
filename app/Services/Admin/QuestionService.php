@@ -19,6 +19,7 @@ class QuestionService
         return Question::create([
             'exam_id' => $data['exam_id'],
             'text' => $data['text'],
+            'points' => $data['points'] ?? 1,
             'order' => $data['order'] ?? 0,
         ]);
     }
@@ -28,6 +29,7 @@ class QuestionService
         $question->update([
             'exam_id' => $data['exam_id'] ?? $question->exam_id,
             'text' => $data['text'] ?? $question->text,
+            'points' => $data['points'] ?? $question->points,
             'order' => $data['order'] ?? $question->order,
         ]);
 

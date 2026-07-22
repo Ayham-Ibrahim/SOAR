@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Choice;
 use App\Models\Exam;
 use App\Models\ExamAttempt;
+use App\Models\Question;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -46,9 +47,12 @@ class ExamAttemptService
 
             $total = count($data['answers']);
             $correct = 0;
+            $totalPoints = 0;
+            $earnedPoints = 0;
 
             foreach ($data['answers'] as $answer) {
                 $choice = Choice::find($answer['choice_id']);
+                $question = Question::find($answer['question_id']);
                 $isCorrect = $choice
                     && $choice->is_correct
                     && $choice->question_id === (int) $answer['question_id'];
@@ -56,6 +60,10 @@ class ExamAttemptService
                 if ($isCorrect) {
                     $correct++;
                 }
+
+                $points = $question?->points ?? 1;
+                $totalPoints += $points;
+                $earnedPoints += $isCorrect ? $points : 0;
 
                 $attempt->answers()->create([
                     'question_id' => $answer['question_id'],
@@ -67,7 +75,9 @@ class ExamAttemptService
             $attempt->update([
                 'total_questions' => $total,
                 'correct_answers' => $correct,
-                'score' => $total > 0 ? round(($correct / $total) * 100, 2) : 0,
+                'total_points' => $totalPoints,
+                'earned_points' => $earnedPoints,
+                'score' => $totalPoints > 0 ? round(($earnedPoints / $totalPoints) * 100, 2) : 0,
             ]);
 
             return $attempt->fresh('answers');

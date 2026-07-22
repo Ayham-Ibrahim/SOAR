@@ -20,6 +20,7 @@ class UpdateQuestionRequest extends FormRequest
         return [
             'exam_id' => ['sometimes', 'integer', 'exists:exams,id'],
             'text' => ['sometimes', 'string'],
+            'points' => ['nullable', 'integer', 'min:1'],
             'order' => ['nullable', 'integer', 'min:0'],
         ];
     }
@@ -40,6 +41,7 @@ class UpdateQuestionRequest extends FormRequest
         return [
             'exam_id' => 'الامتحان',
             'text' => 'نص السؤال',
+            'points' => 'علامة السؤال',
             'order' => 'الترتيب',
         ];
     }

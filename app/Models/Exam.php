@@ -16,6 +16,7 @@ class Exam extends Model
         'title',
         'type',
         'description',
+        'attachment',
         'duration_minutes',
         'passing_score',
         'is_active',
