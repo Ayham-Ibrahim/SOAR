@@ -8,45 +8,52 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class OfferService
 {
-    public function list(?int $packageId = null, int $perPage = 15): LengthAwarePaginator
+    public function list(int $perPage = 15, bool $activeOnly = false): LengthAwarePaginator
     {
         return Offer::query()
-            ->with('package')
-            ->when($packageId, fn ($query) => $query->where('package_id', $packageId))
+            ->when($activeOnly, fn ($query) => $query->where('is_active', true))
             ->latest()
             ->paginate($perPage);
     }
 
     public function create(array $data): Offer
     {
-        return Offer::create([
-            'package_id' => $data['package_id'],
+        $offer = Offer::create([
             'title' => $data['title'],
+            'description' => $data['description'] ?? null,
             'image' => isset($data['image']) ? FileStorage::storeFile($data['image'], 'offers', 'img') : null,
-            'discount_type' => $data['discount_type'],
-            'discount_value' => $data['discount_value'],
-            'starts_at' => $data['starts_at'] ?? null,
-            'ends_at' => $data['ends_at'] ?? null,
+            'price' => $data['price'],
+            'offer_starts_at' => $data['offer_starts_at'],
+            'offer_ends_at' => $data['offer_ends_at'],
+            'access_duration_days' => $data['access_duration_days'],
             'is_active' => $data['is_active'] ?? true,
         ]);
+
+        $offer->courses()->attach($data['course_ids']);
+
+        return $offer->fresh('courses');
     }
 
     public function update(Offer $offer, array $data): Offer
     {
         $offer->update([
-            'package_id' => $data['package_id'] ?? $offer->package_id,
             'title' => $data['title'] ?? $offer->title,
+            'description' => $data['description'] ?? $offer->description,
             'image' => isset($data['image'])
                 ? FileStorage::fileExists($data['image'], $offer->image, 'offers', 'img')
                 : $offer->image,
-            'discount_type' => $data['discount_type'] ?? $offer->discount_type,
-            'discount_value' => $data['discount_value'] ?? $offer->discount_value,
-            'starts_at' => $data['starts_at'] ?? $offer->starts_at,
-            'ends_at' => $data['ends_at'] ?? $offer->ends_at,
+            'price' => $data['price'] ?? $offer->price,
+            'offer_starts_at' => $data['offer_starts_at'] ?? $offer->offer_starts_at,
+            'offer_ends_at' => $data['offer_ends_at'] ?? $offer->offer_ends_at,
+            'access_duration_days' => $data['access_duration_days'] ?? $offer->access_duration_days,
             'is_active' => $data['is_active'] ?? $offer->is_active,
         ]);
 
-        return $offer->fresh();
+        if (isset($data['course_ids'])) {
+            $offer->courses()->sync($data['course_ids']);
+        }
+
+        return $offer->fresh('courses');
     }
 
     public function delete(Offer $offer): void

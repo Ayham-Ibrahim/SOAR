@@ -17,10 +17,7 @@ class OfferController extends Controller
 
     public function index(Request $request)
     {
-        $offers = $this->offerService->list(
-            $request->integer('package_id') ?: null,
-            $request->integer('per_page', 15)
-        );
+        $offers = $this->offerService->list($request->integer('per_page', 15));
 
         return $this->paginate($offers, 'تم جلب العروض بنجاح');
     }
@@ -34,7 +31,7 @@ class OfferController extends Controller
 
     public function show(Offer $offer)
     {
-        return $this->success($offer->load('package'), 'تم جلب بيانات العرض بنجاح');
+        return $this->success($offer->load('courses'), 'تم جلب تفاصيل العرض بنجاح');
     }
 
     public function update(UpdateOfferRequest $request, Offer $offer)
