@@ -100,4 +100,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(ParentAccountRequest::class, 'requested_by_student_id');
     }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class, 'student_id');
+    }
+
+    public function subscriptionRequests(): HasMany
+    {
+        return $this->hasMany(SubscriptionRequest::class, 'student_id');
+    }
 }

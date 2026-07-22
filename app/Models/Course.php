@@ -56,8 +56,13 @@ class Course extends Model
         return $this->hasMany(Exam::class);
     }
 
-    public function packages(): BelongsToMany
+    public function subscriptions(): HasMany
     {
-        return $this->belongsToMany(Package::class, 'package_course');
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function offers(): BelongsToMany
+    {
+        return $this->belongsToMany(Offer::class, 'offer_course');
     }
 }

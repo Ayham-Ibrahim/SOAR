@@ -7,12 +7,13 @@ use App\Http\Controllers\Admin\ExamController as AdminExamController;
 use App\Http\Controllers\Admin\FileController;
 use App\Http\Controllers\Admin\LessonController;
 use App\Http\Controllers\Admin\NewsController as AdminNewsController;
-use App\Http\Controllers\Admin\OfferController;
-use App\Http\Controllers\Admin\PackageController;
+use App\Http\Controllers\Admin\OfferController as AdminOfferController;
 use App\Http\Controllers\Admin\ParentAccountRequestController as AdminParentAccountRequestController;
 use App\Http\Controllers\Admin\ParentController as AdminParentController;
 use App\Http\Controllers\Admin\QuestionController;
+use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\SubscriptionRequestController as AdminSubscriptionRequestController;
 use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\VideoController;
@@ -23,11 +24,14 @@ use App\Http\Controllers\ExamAttemptController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\GovernorateController;
 use App\Http\Controllers\NewsController;
+use App\Http\Controllers\OfferController;
 use App\Http\Controllers\ParentAccountRequestController;
 use App\Http\Controllers\ParentController as ParentAppController;
 use App\Http\Controllers\SchoolController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SubCategoryController;
 use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\SubscriptionRequestController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Middleware\CheckAbilities;
 
@@ -64,6 +68,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('exams', ExamController::class)->only(['index', 'show']);
     Route::apiResource('advertisements', AdvertisementController::class)->only(['show']);
     Route::get('advertisements', [AdvertisementController::class,'getAdsUser']);
+    Route::apiResource('offers', OfferController::class)->only(['index', 'show']);
 
     // Exam taking & results: scoped to the authenticated student.
     Route::apiResource('exam-attempts', ExamAttemptController::class)->only(['index', 'store', 'show']);
@@ -71,6 +76,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // A student requesting a parent account be created for them. Reviewed by
     // an admin (see admin/parent-requests below).
     Route::apiResource('student/parent-requests', ParentAccountRequestController::class)->only(['index', 'store']);
+
+    // Course subscriptions: pay-and-wait-for-approval, for a single course or
+    // a whole offer bundle. Reviewed by an admin (see admin/subscription-requests).
+    Route::apiResource('subscription-requests', SubscriptionRequestController::class)->only(['index', 'store']);
+    Route::post('offer-subscription-requests', [SubscriptionRequestController::class, 'storeOffer']);
+
+    Route::get('settings/payment-info', [SettingController::class, 'paymentInfo']);
 });
 
 Route::middleware(['auth:sanctum', 'parent'])->prefix('parent')->group(function () {
@@ -99,8 +111,7 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
         Route::apiResource('choices', ChoiceController::class);
         Route::apiResource('news', AdminNewsController::class);
         Route::apiResource('advertisements', AdvertisementController::class);
-        Route::apiResource('packages', PackageController::class);
-        Route::apiResource('offers', OfferController::class);
+        Route::apiResource('offers', AdminOfferController::class);
 
         Route::apiResource('exam-attempts', AdminExamAttemptController::class)->only(['index', 'show']);
         Route::patch('exam-attempts/{exam_attempt}/grade', [AdminExamAttemptController::class, 'grade']);
@@ -110,6 +121,12 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
             ->only(['index', 'show']);
         Route::post('parent-requests/{parent_account_request}/approve', [AdminParentAccountRequestController::class, 'approve']);
         Route::post('parent-requests/{parent_account_request}/reject', [AdminParentAccountRequestController::class, 'reject']);
+
+        Route::apiResource('subscription-requests', AdminSubscriptionRequestController::class)->only(['index', 'show']);
+        Route::post('subscription-requests/{subscription_request}/approve', [AdminSubscriptionRequestController::class, 'approve']);
+        Route::post('subscription-requests/{subscription_request}/reject', [AdminSubscriptionRequestController::class, 'reject']);
+
+        Route::apiResource('settings', AdminSettingController::class)->only(['index', 'show', 'update']);
     });
 
 Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])->group(function () {
