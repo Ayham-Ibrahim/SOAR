@@ -22,6 +22,13 @@ class TeacherController extends Controller
         return $this->paginate($teachers, 'تم جلب المدرّسين بنجاح');
     }
 
+    public function activeIndex(Request $request)
+    {
+        $teachers = $this->teacherService->listِActive($request->integer('per_page', 15));
+
+        return $this->paginate($teachers, 'تم جلب المدرّسين النشطين بنجاح');
+    }
+
     public function store(StoreTeacherRequest $request)
     {
         $teacher = $this->teacherService->create($request->validated());
