@@ -65,15 +65,15 @@ class FileStorage
                     self::throwValidationError('file', 'ان الملف الذي ارسلته غير امن');
             }
 
-            Log::info("File validation details", [
-                'file_name' => $originalName,
-                'mime_type' => $mime_type,
-                'extension' => $extension,
-                'allowed_types' => $allowedMimeTypes,
-                'allowed_extensions' => $allowedExtensions,
-                'validation_result' => in_array($mime_type, $allowedMimeTypes, true) &&
-                    in_array($extension, $allowedExtensions, true)
-            ]);
+            // Log::info("File validation details", [
+            //     'file_name' => $originalName,
+            //     'mime_type' => $mime_type,
+            //     'extension' => $extension,
+            //     'allowed_types' => $allowedMimeTypes,
+            //     'allowed_extensions' => $allowedExtensions,
+            //     'validation_result' => in_array($mime_type, $allowedMimeTypes, true) &&
+            //         in_array($extension, $allowedExtensions, true)
+            // ]);
 
             if (!in_array($mime_type, $allowedMimeTypes, true) || !in_array($extension, $allowedExtensions, true)) {
                 self::throwValidationError('file', 'نوع الملف غير مسموح به');
