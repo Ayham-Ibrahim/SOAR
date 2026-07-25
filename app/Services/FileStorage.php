@@ -96,6 +96,7 @@ class FileStorage
 
             return Storage::url($path);
         } catch (\Exception $e) {
+            log::error('File upload error: ' . $e->getMessage(), ['exception' => $e]);
             self::throwValidationError('file', 'حدث خطأ أثناء معالجة الملف');
         }
     }
