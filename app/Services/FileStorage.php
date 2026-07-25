@@ -67,15 +67,15 @@ class FileStorage
 
             $mime_type = $file->getMimeType();
             $extension = $file->getClientOriginalExtension();
-            // Log::info("File validation details", [
-            //     'file_name' => $file->getClientOriginalName(),
-            //     'mime_type' => $mime_type,
-            //     'extension' => $extension,
-            //     'allowed_types' => $allowedMimeTypes,
-            //     'allowed_extensions' => $allowedExtensions,
-            //     'validation_result' => in_array($mime_type, $allowedMimeTypes) &&
-            //         in_array($extension, $allowedExtensions)
-            // ]);
+            Log::info("File validation details", [
+                'file_name' => $file->getClientOriginalName(),
+                'mime_type' => $mime_type,
+                'extension' => $extension,
+                'allowed_types' => $allowedMimeTypes,
+                'allowed_extensions' => $allowedExtensions,
+                'validation_result' => in_array($mime_type, $allowedMimeTypes) &&
+                    in_array($extension, $allowedExtensions)
+            ]);
 
             if (!in_array($mime_type, $allowedMimeTypes) || !in_array($extension, $allowedExtensions)) {
                 self::throwValidationError('file', 'نوع الملف غير مسموح به');
