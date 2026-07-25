@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\SubscriptionRequest;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Storage;
 
 class SubscriptionRequestService
 {
@@ -13,7 +14,7 @@ class SubscriptionRequestService
         return SubscriptionRequest::create([
             'student_id' => $student->id,
             'course_id' => $data['course_id'],
-            'receipt_image' => FileStorage::storeFile($data['receipt_image'], 'subscription-receipts', 'img'),
+            'receipt_image' => Storage::putFile('subscription-receipts', $data['receipt_image']),
             'amount' => $data['amount'] ?? null,
         ]);
     }
