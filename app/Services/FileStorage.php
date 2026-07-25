@@ -26,8 +26,8 @@ class FileStorage
     {
         try {
             $originalName = $file->getClientOriginalName();
-
-            // Check for double extensions in the file name
+            $mime_type = $file->getMimeType();
+            $extension = strtolower($file->getClientOriginalExtension());
             if (preg_match('/\.[^.]+\./', $originalName)) {
                 self::throwValidationError('file', 'ان الملف الذي ارسلته غير امن');
             }
@@ -65,39 +65,39 @@ class FileStorage
                     self::throwValidationError('file', 'ان الملف الذي ارسلته غير امن');
             }
 
-            $mime_type = $file->getMimeType();
-            $extension = $file->getClientOriginalExtension();
             Log::info("File validation details", [
-                'file_name' => $file->getClientOriginalName(),
+                'file_name' => $originalName,
                 'mime_type' => $mime_type,
                 'extension' => $extension,
                 'allowed_types' => $allowedMimeTypes,
                 'allowed_extensions' => $allowedExtensions,
-                'validation_result' => in_array($mime_type, $allowedMimeTypes) &&
-                    in_array($extension, $allowedExtensions)
+                'validation_result' => in_array($mime_type, $allowedMimeTypes, true) &&
+                    in_array($extension, $allowedExtensions, true)
             ]);
 
-            if (!in_array($mime_type, $allowedMimeTypes) || !in_array($extension, $allowedExtensions)) {
+            if (!in_array($mime_type, $allowedMimeTypes, true) || !in_array($extension, $allowedExtensions, true)) {
                 self::throwValidationError('file', 'نوع الملف غير مسموح به');
             }
 
             $fileName = Str::random(32);
             $fileName = preg_replace('/[^A-Za-z0-9_\-]/', '', $fileName);
 
-            $path = Storage::putFileAs($folderName, $file, $fileName . '.' . $extension);
+            $path = $file->storeAs($folderName, $fileName . '.' . $extension, 'public');
 
             $expectedPath = storage_path('app/public/' . $folderName . '/' . $fileName . '.' . $extension);
             $actualPath = storage_path('app/public/' . $path);
 
-            // if ($actualPath !== $expectedPath) {
-            //     Storage::disk('public')->delete($path);
-            //     self::throwValidationError('file', 'حدث خطأ أثناء حفظ الملف');
-            // }
+            if ($actualPath !== $expectedPath) {
+                Storage::disk('public')->delete($path);
+                self::throwValidationError('file', 'حدث خطأ أثناء حفظ الملف');
+            }
 
             return Storage::url($path);
-        } catch (\Exception $e) {
+        } catch (HttpResponseException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
             Log::error('File upload error details:', [
-                'message' => $e->getMessage(),
+                'message' => method_exists($e, 'getResponse') ? $e->getResponse()?->getContent() : $e->getMessage(),
                 'code' => $e->getCode(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
@@ -132,9 +132,10 @@ class FileStorage
      * This method checks if a file exists in the request and uploads it to the specified folder.
      * If the file doesn't exist, it returns null.
      *
-     * @param  Request  $request The HTTP request object.
-     * @param  string  $folder The folder to upload the file to.
-     * @param  string  $fileColumnName The name of the file input field in the request.
+     * @param  mixed   $file The uploaded file instance.
+     * @param  mixed   $old_file The existing file URL or relative storage path.
+     * @param  string  $folderName The folder to upload the file to.
+     * @param  string  $suffix The file type suffix.
      * @return string|null The file path if the file exists, otherwise null.
      */
     public static function fileExists($file, $old_file, string $folderName, $suffix)
