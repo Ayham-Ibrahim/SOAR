@@ -89,10 +89,10 @@ class FileStorage
             $expectedPath = storage_path('app/public/' . $folderName . '/' . $fileName . '.' . $extension);
             $actualPath = storage_path('app/public/' . $path);
 
-            if ($actualPath !== $expectedPath) {
-                Storage::disk('public')->delete($path);
-                self::throwValidationError('file', 'حدث خطأ أثناء حفظ الملف');
-            }
+            // if ($actualPath !== $expectedPath) {
+            //     Storage::disk('public')->delete($path);
+            //     self::throwValidationError('file', 'حدث خطأ أثناء حفظ الملف');
+            // }
 
             return Storage::url($path);
         } catch (\Exception $e) {
