@@ -84,7 +84,7 @@ class FileStorage
             $fileName = Str::random(32);
             $fileName = preg_replace('/[^A-Za-z0-9_\-]/', '', $fileName);
 
-            $path = Storage::disk('public')->putFileAs($folderName, $file, $fileName . '.' . $extension);
+            $path = $file->store($folderName, 'public');
 
             $expectedPath = storage_path('app/public/' . $folderName . '/' . $fileName . '.' . $extension);
             $actualPath = storage_path('app/public/' . $path);
