@@ -12,7 +12,11 @@ class TeacherService
     {
         return Teacher::query()->latest()->paginate($perPage);
     }
-
+    public function listِActive(int $perPage = 15): LengthAwarePaginator
+    {
+        return Teacher::query()->where('is_active', true)->latest()->paginate($perPage);
+    }
+    
     public function create(array $data): Teacher
     {
         return Teacher::create([

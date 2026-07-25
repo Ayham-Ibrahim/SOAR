@@ -69,7 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('advertisements', AdvertisementController::class)->only(['show']);
     Route::get('advertisements', [AdvertisementController::class,'getAdsUser']);
     Route::apiResource('offers', OfferController::class)->only(['index', 'show']);
-    Route::apiResource('teachers', TeacherController::class)->only(['index']);
+    Route::get('teachers', [TeacherController::class, 'activeIndex']);
 
     // Exam taking & results: scoped to the authenticated student.
     Route::apiResource('exam-attempts', ExamAttemptController::class)->only(['index', 'store', 'show']);
