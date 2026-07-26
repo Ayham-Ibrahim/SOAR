@@ -14,7 +14,7 @@ class TeacherService
     }
     public function listِActive(int $perPage = 15): LengthAwarePaginator
     {
-        return Teacher::query()->where('is_active', true)->latest()->paginate($perPage);
+        return Teacher::query()->with('courses')->where('is_active', true)->latest()->paginate($perPage);
     }
     
     public function create(array $data): Teacher
