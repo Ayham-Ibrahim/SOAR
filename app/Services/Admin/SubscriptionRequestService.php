@@ -5,11 +5,14 @@ namespace App\Services\Admin;
 use App\Models\Subscription;
 use App\Models\SubscriptionRequest;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class SubscriptionRequestService
 {
+    public function __construct(private readonly NotificationService $notificationService) {}
+
     public function list(?string $status = null, int $perPage = 15): LengthAwarePaginator
     {
         return SubscriptionRequest::query()
@@ -60,9 +63,9 @@ class SubscriptionRequestService
                 'reviewed_at' => now(),
             ]);
 
-            // TODO: notify the student — see the note in
-            // Admin\ParentAccountRequestService::approve(); no notification
-            // channel exists in this project yet.
+            if ($request->student) {
+                $this->notificationService->notifyStudentSubscriptionApproved($request->student, $request);
+            }
 
             return $request->fresh('subscriptions');
         });
@@ -77,7 +80,9 @@ class SubscriptionRequestService
             'reviewed_at' => now(),
         ]);
 
-        // TODO: notify the student — see note in approve().
+        if ($request->student) {
+            $this->notificationService->notifyStudentSubscriptionRejected($request->student, $reason);
+        }
 
         return $request->fresh();
     }

@@ -25,8 +25,8 @@ class FcmService
      */
     protected function initConfig(): void
     {
-        $this->firebaseProjectId = env('FIREBASE_PROJECT_ID', 'aura-f49c0');
-        $this->credentialsPath = storage_path('app/' . env('FIREBASE_CREDENTIALS_FILE', 'aura-f49c0-firebase-adminsdk-fbsvc-db4625c19a.json'));
+        $this->firebaseProjectId = env('FIREBASE_PROJECT_ID');
+        $this->credentialsPath = storage_path('app/' . env('FIREBASE_CREDENTIALS_FILE'));
     }
 
     /**
