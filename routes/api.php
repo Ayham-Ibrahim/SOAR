@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdvertisementController;
+use App\Http\Controllers\Admin\BroadcastNotificationController;
 use App\Http\Controllers\Admin\ChoiceController;
 use App\Http\Controllers\Admin\ExamAttemptController as AdminExamAttemptController;
 use App\Http\Controllers\Admin\ExamController as AdminExamController;
@@ -132,6 +133,10 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
         Route::apiResource('settings', AdminSettingController::class)
             ->parameters(['settings' => 'key'])
             ->only(['index', 'show', 'update']);
+
+        Route::get('broadcast-notifications/target-types', [BroadcastNotificationController::class, 'getTargetTypes']);
+        Route::apiResource('broadcast-notifications', BroadcastNotificationController::class)
+            ->only(['index', 'store', 'show', 'destroy']);
     });
 
 Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])->group(function () {

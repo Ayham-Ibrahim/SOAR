@@ -5,11 +5,14 @@ namespace App\Services\Admin;
 use App\Models\ParentAccountRequest;
 use App\Models\ParentModel;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class ParentAccountRequestService
 {
+    public function __construct(private readonly NotificationService $notificationService) {}
+
     public function list(?string $status = null, int $perPage = 15): LengthAwarePaginator
     {
         return ParentAccountRequest::query()
@@ -47,9 +50,11 @@ class ParentAccountRequestService
                 'created_parent_id' => $parent->id,
             ]);
 
-            // TODO: notify the requesting student (User::notify) once a concrete
-            // notification channel exists for this project — none does yet
-            // (no App\Notifications classes, no notifications table).
+            $student = $request->student;
+            if ($student) {
+                $this->notificationService->notifyStudentParentAccountApproved($student, $parent);
+                $this->notificationService->notifyParentAccountApproved($parent, $student);
+            }
 
             return $parent->fresh('students');
         });
@@ -64,7 +69,9 @@ class ParentAccountRequestService
             'reviewed_at' => now(),
         ]);
 
-        // TODO: notify the requesting student — see note in approve().
+        if ($request->student) {
+            $this->notificationService->notifyStudentParentAccountRejected($request->student, $reason);
+        }
 
         return $request->fresh();
     }

@@ -8,24 +8,34 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class SubscriptionRequestService
 {
+    public function __construct(private readonly NotificationService $notificationService) {}
+
     public function submitDirect(User $student, array $data): SubscriptionRequest
     {
-        return SubscriptionRequest::create([
+        $request = SubscriptionRequest::create([
             'student_id' => $student->id,
             'course_id' => $data['course_id'],
             'receipt_image' => FileStorage::storeFile($data['receipt_image'], 'subscription-receipts', 'img'),
             'amount' => $data['amount'] ?? null,
         ]);
+
+        $this->notificationService->notifyAdminNewSubscriptionRequest($request);
+
+        return $request;
     }
 
     public function submitOffer(User $student, array $data): SubscriptionRequest
     {
-        return SubscriptionRequest::create([
+        $request = SubscriptionRequest::create([
             'student_id' => $student->id,
             'offer_id' => $data['offer_id'],
             'receipt_image' => FileStorage::storeFile($data['receipt_image'], 'subscription-receipts', 'img'),
             'amount' => $data['amount'] ?? null,
         ]);
+
+        $this->notificationService->notifyAdminNewSubscriptionRequest($request);
+
+        return $request;
     }
 
     public function listForStudent(User $student, int $perPage = 15): LengthAwarePaginator

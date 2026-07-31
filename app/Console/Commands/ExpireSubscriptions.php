@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Subscription;
+use App\Services\NotificationService;
 use Illuminate\Console\Command;
 
 /**
@@ -17,18 +18,19 @@ class ExpireSubscriptions extends Command
 
     protected $description = 'Mark subscriptions past their expiry as inactive (reporting/notifications only)';
 
-    public function handle(): void
+    public function handle(NotificationService $notificationService): void
     {
         $expired = Subscription::where('is_active', true)
             ->where('expires_at', '<=', now())
+            ->with('student')
             ->get();
 
         foreach ($expired as $subscription) {
             $subscription->update(['is_active' => false]);
 
-            // TODO: notify the student ("اشتراكك انتهى") — no notification
-            // channel exists in this project yet, see the note in
-            // Admin\ParentAccountRequestService::approve().
+            if ($subscription->student) {
+                $notificationService->notifyStudentSubscriptionExpired($subscription->student, $subscription);
+            }
         }
 
         $this->info("Expired {$expired->count()} subscription(s).");
