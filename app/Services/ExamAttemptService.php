@@ -31,8 +31,21 @@ class ExamAttemptService
             'exam_id' => $exam->id,
             'user_id' => $user->id,
             'status' => 'pending_review',
-            'submission_file' => FileStorage::storeFile($data['submission_file'], 'exam-submissions', 'docs'),
+            'submission_file' => $this->storeAttachment($data['submission_file']),
         ]);
+    }
+
+    /**
+     * The attachment may be a PDF or an image — FileStorage validates each
+     * against a different allowed-type list, so route by the file's mime.
+     */
+    private function storeAttachment($file, ?string $old = null): string
+    {
+        $suffix = str_starts_with($file->getMimeType(), 'image/') ? 'img' : 'docs';
+
+        return $old
+            ? FileStorage::fileExists($file, $old, 'exam-submissions', $suffix)
+            : FileStorage::storeFile($file, 'exam-submissions', $suffix);
     }
 
     private function submitMcq(Exam $exam, User $user, array $data): ExamAttempt
@@ -88,7 +101,7 @@ class ExamAttemptService
     {
         return ExamAttempt::where('user_id', $user->id)
             ->with('exam')
-            ->when($examId, fn ($query) => $query->where('exam_id', $examId))
+            ->when($examId, fn($query) => $query->where('exam_id', $examId))
             ->latest()
             ->paginate($perPage);
     }
