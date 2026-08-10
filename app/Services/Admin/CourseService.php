@@ -10,7 +10,7 @@ class CourseService
     public function list(?int $subjectId = null, int $perPage = 15): LengthAwarePaginator
     {
         return Course::query()
-            ->with(['subject', 'teacher'])
+            ->with(['subject.subCategory.category', 'teacher'])
             ->when($subjectId, fn ($query) => $query->where('subject_id', $subjectId))
             ->latest()
             ->paginate($perPage);
@@ -22,10 +22,10 @@ class CourseService
             'subject_id' => $data['subject_id'],
             'teacher_id' => $data['teacher_id'],
             'title' => $data['title'],
-            'description' => $data['description'],
+            'description' => $data['description'] ?? null,
             'price' => $data['price'],
             'discount_price' => $data['discount_price'] ?? null,
-            'subscription_days' => $data['subscription_days'],
+            'subscription_days' => $data['subscription_days'] ?? null,
             'free_videos_count' => $data['free_videos_count'] ?? 0,
             'allow_download' => $data['allow_download'] ?? false,
             'is_active' => $data['is_active'] ?? true,
