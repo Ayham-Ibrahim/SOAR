@@ -140,4 +140,5 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])->group(f
     Route::apiResource('sub-categories', SubCategoryController::class)->except(['index', 'show']);
     Route::apiResource('subjects', SubjectController::class)->except(['index', 'show']);
     Route::apiResource('courses', CourseController::class)->except(['index', 'show']);
+    Route::get('courses/{course}/students', [CourseController::class, 'subscribers']);
 });

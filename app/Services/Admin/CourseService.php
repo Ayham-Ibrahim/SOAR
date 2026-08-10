@@ -3,6 +3,7 @@
 namespace App\Services\Admin;
 
 use App\Models\Course;
+use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class CourseService
@@ -53,5 +54,39 @@ class CourseService
     public function delete(Course $course): void
     {
         $course->delete();
+    }
+
+    /**
+     * Appends lessons_count, videos_count, exams_count, and
+     * active_subscribers_count (distinct students with a non-expired
+     * subscription — matches App\Services\CourseAccess's own definition of
+     * "subscribed") to the course.
+     */
+    public function withStats(Course $course): Course
+    {
+        $course->loadCount(['lessons', 'videos', 'exams']);
+
+        $course->active_subscribers_count = $course->subscriptions()
+            ->where('expires_at', '>', now())
+            ->distinct()
+            ->count('student_id');
+
+        return $course;
+    }
+
+    /**
+     * Students with an active (non-expired) subscription to this course —
+     * one row per student even if they have more than one subscription row
+     * for it (e.g. renewed, or granted via both a direct purchase and an
+     * offer).
+     */
+    public function subscribers(Course $course, int $perPage = 15): LengthAwarePaginator
+    {
+        return User::query()
+            ->select(['id', 'name', 'phone', 'avatar'])
+            ->whereHas('subscriptions', function ($query) use ($course) {
+                $query->where('course_id', $course->id)->where('expires_at', '>', now());
+            })
+            ->paginate($perPage);
     }
 }

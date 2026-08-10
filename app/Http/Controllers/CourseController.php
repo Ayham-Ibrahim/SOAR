@@ -36,9 +36,11 @@ class CourseController extends Controller
 
     /**
      * Course Details: full curriculum tree (subject, teacher, lessons → unit +
-     * videos/files). Video/file URLs are hidden unless the student has paid
-     * access (CourseAccess) or the video is marked free — the lesson/video
-     * titles themselves stay visible as a catalog preview either way.
+     * videos/files), plus lessons_count/videos_count/exams_count and
+     * active_subscribers_count. Video/file URLs are hidden unless the
+     * student has paid access (CourseAccess) or the video is marked free —
+     * the lesson/video titles themselves stay visible as a catalog preview
+     * either way.
      */
     public function show(Request $request, Course $course)
     {
@@ -49,6 +51,8 @@ class CourseController extends Controller
             'lessons.videos',
             'lessons.files',
         ]);
+
+        $this->courseService->withStats($course);
 
         $hasAccess = $this->courseAccess->hasAccess($request->user(), $course);
 
@@ -67,6 +71,16 @@ class CourseController extends Controller
         $course->has_access = $hasAccess;
 
         return $this->success($course, 'تم جلب تفاصيل الدورة بنجاح');
+    }
+
+    /**
+     * Admin: students with an active subscription to this course.
+     */
+    public function subscribers(Request $request, Course $course)
+    {
+        $students = $this->courseService->subscribers($course, $request->integer('per_page', 15));
+
+        return $this->paginate($students, 'تم جلب الطلاب المشتركين بنجاح');
     }
 
     public function update(UpdateCourseRequest $request, Course $course)
