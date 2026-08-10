@@ -12,6 +12,7 @@ class SubjectService
     {
         return Subject::query()
             ->with('subCategory')
+            ->withCount('courses')
             ->when($subCategoryId, fn ($query) => $query->where('sub_category_id', $subCategoryId))
             ->paginate($perPage);
     }

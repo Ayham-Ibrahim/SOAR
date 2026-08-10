@@ -10,7 +10,7 @@ class TeacherService
 {
     public function list(int $perPage = 15): LengthAwarePaginator
     {
-        return Teacher::query()->latest()->paginate($perPage);
+        return Teacher::query()->withCount('courses')->latest()->paginate($perPage);
     }
     public function listِActive(int $perPage = 15): LengthAwarePaginator
     {

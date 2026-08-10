@@ -12,6 +12,7 @@ class SubCategoryService
     {
         return SubCategory::query()
             ->with('category')
+            ->withCount('subjects')
             ->when($categoryId, fn ($query) => $query->where('category_id', $categoryId))
             ->paginate($perPage);
     }
