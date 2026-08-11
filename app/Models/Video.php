@@ -20,6 +20,7 @@ class Video extends Model
         'order',
         'is_free',
         'is_downloadable',
+        'status',
     ];
 
     protected function casts(): array

@@ -26,6 +26,7 @@ class VideoService
             'order' => $data['order'] ?? 0,
             'is_free' => $data['is_free'] ?? false,
             'is_downloadable' => $data['is_downloadable'] ?? false,
+            'status' => $data['status'] ?? 'incomplete',
         ]);
     }
 
@@ -44,6 +45,7 @@ class VideoService
             'order' => $data['order'] ?? $video->order,
             'is_free' => $data['is_free'] ?? $video->is_free,
             'is_downloadable' => $data['is_downloadable'] ?? $video->is_downloadable,
+            'status' => $data['status'] ?? $video->status,
         ]);
 
         return $video->fresh();
