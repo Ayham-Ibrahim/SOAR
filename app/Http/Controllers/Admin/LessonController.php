@@ -35,7 +35,7 @@ class LessonController extends Controller
 
     public function show(Lesson $lesson)
     {
-        return $this->success($lesson->load(['course', 'unit', 'videos', 'files']), 'تم جلب بيانات الدرس بنجاح');
+        return $this->success($lesson->load(['courses', 'unit', 'videos', 'files']), 'تم جلب بيانات الدرس بنجاح');
     }
 
     public function update(UpdateLessonRequest $request, Lesson $lesson)

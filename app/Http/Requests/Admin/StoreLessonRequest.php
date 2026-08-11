@@ -21,7 +21,9 @@ class StoreLessonRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'course_id' => ['required', 'integer', 'exists:courses,id'],
+            'course_ids' => ['required_without:course_id', 'array', 'min:1'],
+            'course_ids.*' => ['integer', 'exists:courses,id'],
+            'course_id' => ['sometimes', 'integer', 'exists:courses,id'],
             'unit_id' => ['required', 'integer', 'exists:units,id'],
             'title' => ['required', 'string', 'max:255'],
             'order' => ['nullable', 'integer', 'min:0'],
@@ -36,20 +38,28 @@ class StoreLessonRequest extends FormRequest
     {
         return [
             function (Validator $validator) {
+                $courseIds = $this->input('course_ids');
                 $courseId = $this->input('course_id');
                 $unitId = $this->input('unit_id');
 
-                if (! $courseId || ! $unitId) {
+                if (! $unitId || (! $courseIds && ! $courseId)) {
                     return;
                 }
 
-                $course = Course::find($courseId);
+                $courseIds = $courseIds ?? ($courseId ? [$courseId] : []);
                 $unit = Unit::find($unitId);
+                $courses = Course::whereIn('id', $courseIds)->get();
 
-                if ($course && $unit && $course->subject_id !== $unit->subject_id) {
+                if (! $unit || $courses->count() !== count($courseIds)) {
+                    return;
+                }
+
+                $subjectIds = $courses->pluck('subject_id')->unique();
+
+                if ($subjectIds->count() > 1 || $subjectIds->first() !== $unit->subject_id) {
                     $validator->errors()->add(
                         'unit_id',
-                        'الوحدة المحددة يجب أن تنتمي لنفس مادة الدورة المحددة.'
+                        'الوحدة المحددة يجب أن تنتمي لنفس مادة جميع الدورات المحددة.'
                     );
                 }
             },
@@ -71,6 +81,7 @@ class StoreLessonRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'course_ids' => 'قائمة الدورات',
             'course_id' => 'الدورة',
             'unit_id' => 'الوحدة',
             'title' => 'عنوان الدرس',

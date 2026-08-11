@@ -125,12 +125,13 @@ class AcademicContentSeeder extends Seeder
             $unit = $units[($l - 1) % count($units)];
 
             $lesson = Lesson::create([
-                'course_id' => $course->id,
                 'unit_id' => $unit->id,
                 'title' => 'الدرس '.$l,
                 'order' => $l,
                 'is_free' => $l === 1,
             ]);
+
+            $lesson->courses()->attach($course->id);
 
             Video::create([
                 'lesson_id' => $lesson->id,

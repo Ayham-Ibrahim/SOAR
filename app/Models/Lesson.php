@@ -6,21 +6,18 @@ use App\Models\Concerns\Orderable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * A lesson belongs to BOTH a course and a unit, and the two must agree on
- * subject: lesson.course.subject_id MUST equal lesson.unit.subject_id. This
- * is not a DB constraint (it spans two separate parent chains) — it's
- * enforced in StoreLessonRequest/UpdateLessonRequest via an after-validation
- * hook. Do not bypass that check when creating/updating lessons elsewhere.
+ * A lesson belongs to a unit and may be attached to multiple courses.
+ * The course/lesson relationship is now many-to-many via course_lesson.
  */
 class Lesson extends Model
 {
     use HasFactory, Orderable;
 
     protected $fillable = [
-        'course_id',
         'unit_id',
         'title',
         'order',
@@ -34,9 +31,9 @@ class Lesson extends Model
         ];
     }
 
-    public function course(): BelongsTo
+    public function courses(): BelongsToMany
     {
-        return $this->belongsTo(Course::class);
+        return $this->belongsToMany(Course::class, 'course_lesson');
     }
 
     public function unit(): BelongsTo
