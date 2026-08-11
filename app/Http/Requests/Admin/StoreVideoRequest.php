@@ -26,6 +26,7 @@ class StoreVideoRequest extends FormRequest
             'order' => ['nullable', 'integer', 'min:0'],
             'is_free' => ['nullable', 'boolean'],
             'is_downloadable' => ['nullable', 'boolean'],
+            'status' => ['nullable', 'string', 'in:completed,incomplete'],
         ];
     }
 
@@ -56,6 +57,7 @@ class StoreVideoRequest extends FormRequest
             'order' => 'الترتيب',
             'is_free' => 'مجاني',
             'is_downloadable' => 'قابل للتحميل',
+            'status' => 'حالة الفيديو',
         ];
     }
 }

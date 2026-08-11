@@ -16,12 +16,22 @@ class QuestionService
 
     public function create(array $data): Question
     {
-        return Question::create([
+        $question = Question::create([
             'exam_id' => $data['exam_id'],
             'text' => $data['text'],
             'points' => $data['points'] ?? 1,
             'order' => $data['order'] ?? 0,
         ]);
+
+        if (! empty($data['choices'])) {
+            $question->choices()->createMany(array_map(fn ($choice) => [
+                'text' => $choice['text'],
+                'is_correct' => $choice['is_correct'] ?? false,
+                'order' => $choice['order'] ?? 0,
+            ], $data['choices']));
+        }
+
+        return $question->fresh('choices');
     }
 
     public function update(Question $question, array $data): Question

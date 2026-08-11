@@ -80,7 +80,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Course subscriptions: pay-and-wait-for-approval, for a single course or
     // a whole offer bundle. Reviewed by an admin (see admin/subscription-requests).
-    Route::apiResource('subscription-requests', SubscriptionRequestController::class)->only(['index', 'store']);
+    Route::apiResource('subscription-requests', SubscriptionRequestController::class)->only(['index', 'store', 'show']);
     Route::post('offer-subscription-requests', [SubscriptionRequestController::class, 'storeOffer']);
 
     Route::get('settings/payment-info', [SettingController::class, 'paymentInfo']);

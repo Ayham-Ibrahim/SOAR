@@ -21,6 +21,8 @@ class UpdateLessonRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'course_ids' => ['sometimes', 'array', 'min:1'],
+            'course_ids.*' => ['integer', 'exists:courses,id'],
             'course_id' => ['sometimes', 'integer', 'exists:courses,id'],
             'unit_id' => ['sometimes', 'integer', 'exists:units,id'],
             'title' => ['sometimes', 'string', 'max:255'],
@@ -38,20 +40,35 @@ class UpdateLessonRequest extends FormRequest
             function (Validator $validator) {
                 $lesson = $this->route('lesson');
 
-                $courseId = $this->input('course_id', $lesson?->course_id);
+                $courseIds = $this->input('course_ids');
+                $courseId = $this->input('course_id');
                 $unitId = $this->input('unit_id', $lesson?->unit_id);
 
-                if (! $courseId || ! $unitId) {
+                if (! $unitId) {
                     return;
                 }
 
-                $course = Course::find($courseId);
-                $unit = Unit::find($unitId);
+                if ($courseIds === null) {
+                    $courseIds = $courseId ? [$courseId] : ($lesson?->courses()->pluck('courses.id')->all() ?? []);
+                }
 
-                if ($course && $unit && $course->subject_id !== $unit->subject_id) {
+                if (! $courseIds) {
+                    return;
+                }
+
+                $unit = Unit::find($unitId);
+                $courses = Course::whereIn('id', $courseIds)->get();
+
+                if (! $unit || $courses->count() !== count($courseIds)) {
+                    return;
+                }
+
+                $subjectIds = $courses->pluck('subject_id')->unique();
+
+                if ($subjectIds->count() > 1 || $subjectIds->first() !== $unit->subject_id) {
                     $validator->errors()->add(
                         'unit_id',
-                        'الوحدة المحددة يجب أن تنتمي لنفس مادة الدورة المحددة.'
+                        'الوحدة المحددة يجب أن تنتمي لنفس مادة جميع الدورات المحددة.'
                     );
                 }
             },
@@ -73,6 +90,7 @@ class UpdateLessonRequest extends FormRequest
     public function attributes(): array
     {
         return [
+            'course_ids' => 'قائمة الدورات',
             'course_id' => 'الدورة',
             'unit_id' => 'الوحدة',
             'title' => 'عنوان الدرس',

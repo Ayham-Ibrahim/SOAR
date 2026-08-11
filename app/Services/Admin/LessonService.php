@@ -10,34 +10,46 @@ class LessonService
     public function list(?int $courseId = null, ?int $unitId = null, int $perPage = 15): LengthAwarePaginator
     {
         return Lesson::query()
-            ->with(['course', 'unit'])
-            ->when($courseId, fn ($query) => $query->where('course_id', $courseId))
+            ->with(['courses', 'unit'])
+            ->when($courseId, fn ($query) => $query->whereHas('courses', fn ($query) => $query->where('courses.id', $courseId)))
             ->when($unitId, fn ($query) => $query->where('unit_id', $unitId))
             ->paginate($perPage);
     }
 
     public function create(array $data): Lesson
     {
-        return Lesson::create([
-            'course_id' => $data['course_id'],
+        $courseIds = $data['course_ids'] ?? ($data['course_id'] ? [$data['course_id']] : []);
+
+        $lesson = Lesson::create([
             'unit_id' => $data['unit_id'],
             'title' => $data['title'],
             'order' => $data['order'] ?? 0,
             'is_free' => $data['is_free'] ?? false,
         ]);
+
+        if ($courseIds) {
+            $lesson->courses()->sync($courseIds);
+        }
+
+        return $lesson->fresh(['courses', 'unit', 'videos', 'files']);
     }
 
     public function update(Lesson $lesson, array $data): Lesson
     {
+        $courseIds = $data['course_ids'] ?? ($data['course_id'] ? [$data['course_id']] : null);
+
         $lesson->update([
-            'course_id' => $data['course_id'] ?? $lesson->course_id,
             'unit_id' => $data['unit_id'] ?? $lesson->unit_id,
             'title' => $data['title'] ?? $lesson->title,
             'order' => $data['order'] ?? $lesson->order,
             'is_free' => $data['is_free'] ?? $lesson->is_free,
         ]);
 
-        return $lesson->fresh();
+        if ($courseIds !== null) {
+            $lesson->courses()->sync($courseIds);
+        }
+
+        return $lesson->fresh(['courses', 'unit', 'videos', 'files']);
     }
 
     public function delete(Lesson $lesson): void

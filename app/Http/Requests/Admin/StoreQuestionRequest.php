@@ -22,6 +22,10 @@ class StoreQuestionRequest extends FormRequest
             'text' => ['required', 'string'],
             'points' => ['nullable', 'integer', 'min:1'],
             'order' => ['nullable', 'integer', 'min:0'],
+            'choices' => ['nullable', 'array', 'min:1'],
+            'choices.*.text' => ['required', 'string'],
+            'choices.*.is_correct' => ['nullable', 'boolean'],
+            'choices.*.order' => ['nullable', 'integer', 'min:0'],
         ];
     }
 
@@ -43,6 +47,10 @@ class StoreQuestionRequest extends FormRequest
             'text' => 'نص السؤال',
             'points' => 'علامة السؤال',
             'order' => 'الترتيب',
+            'choices' => 'الخيارات',
+            'choices.*.text' => 'نص الخيار',
+            'choices.*.is_correct' => 'علامة الخيار الصحيح',
+            'choices.*.order' => 'ترتيب الخيار',
         ];
     }
 }

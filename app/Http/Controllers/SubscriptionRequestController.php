@@ -39,4 +39,11 @@ class SubscriptionRequestController extends Controller
 
         return $this->success($subscriptionRequest, 'تم إرسال طلب الاشتراك بالعرض بنجاح', 201);
     }
+
+    public function show(Request $request, int $id)
+    {
+        $subscriptionRequest = $this->subscriptionRequestService->getForStudent($request->user(), $id);
+
+        return $this->success($subscriptionRequest, 'تم جلب تفاصيل الطلب بنجاح');
+    }
 }

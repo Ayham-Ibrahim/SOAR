@@ -4,6 +4,7 @@ namespace App\Services\Admin;
 
 use App\Models\Course;
 use App\Models\User;
+use App\Models\Video;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class CourseService
@@ -64,7 +65,12 @@ class CourseService
      */
     public function withStats(Course $course): Course
     {
-        $course->loadCount(['lessons', 'videos', 'exams']);
+        $course->loadCount(['lessons', 'exams']);
+
+        $course->videos_count = Video::query()
+            ->whereHas('lesson.courses', fn ($query) => $query->where('courses.id', $course->id))
+            ->distinct()
+            ->count('id');
 
         $course->active_subscribers_count = $course->subscriptions()
             ->where('expires_at', '>', now())
