@@ -34,7 +34,10 @@ class ExamController extends Controller
 
     public function show(Exam $exam)
     {
-        return $this->success($exam->load('questions.choices'), 'تم جلب بيانات الامتحان بنجاح');
+        $exam->load('questions.choices');
+        $exam->loadCount('questions');
+
+        return $this->success($exam, 'تم جلب بيانات الامتحان بنجاح');
     }
 
     public function update(UpdateExamRequest $request, Exam $exam)

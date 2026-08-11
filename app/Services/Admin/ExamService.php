@@ -11,6 +11,7 @@ class ExamService
     public function list(?int $courseId = null, int $perPage = 15, bool $activeOnly = false): LengthAwarePaginator
     {
         return Exam::query()
+            ->withCount('questions')
             ->when($courseId, fn ($query) => $query->where('course_id', $courseId))
             ->when($activeOnly, fn ($query) => $query->where('is_active', true))
             ->latest()
