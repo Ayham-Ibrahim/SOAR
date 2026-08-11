@@ -12,6 +12,7 @@ class OfferService
     {
         return Offer::query()
             ->when($activeOnly, fn ($query) => $query->where('is_active', true))
+            ->withCount(['courses', 'subscriptions'])
             ->latest()
             ->paginate($perPage);
     }
