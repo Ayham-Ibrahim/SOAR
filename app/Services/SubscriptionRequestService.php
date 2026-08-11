@@ -36,4 +36,12 @@ class SubscriptionRequestService
             ->latest()
             ->paginate($perPage);
     }
+
+    public function getForStudent(User $student, int $id): SubscriptionRequest
+    {
+        return SubscriptionRequest::query()
+            ->where('student_id', $student->id)
+            ->with(['course', 'offer'])
+            ->findOrFail($id);
+    }
 }
