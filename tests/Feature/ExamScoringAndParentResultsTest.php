@@ -6,10 +6,12 @@ use App\Models\Category;
 use App\Models\Choice;
 use App\Models\Course;
 use App\Models\Exam;
+use App\Models\Offer;
 use App\Models\ParentModel;
 use App\Models\Question;
 use App\Models\Subject;
 use App\Models\SubCategory;
+use App\Models\Subscription;
 use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -127,5 +129,78 @@ class ExamScoringAndParentResultsTest extends TestCase
         $detail = $this->getJson("/api/parent/students/{$student->id}/exam-attempts/{$attemptId}");
         $detail->assertStatus(200);
         $detail->assertJsonPath('data.score', '100.00');
+    }
+
+    public function test_parent_can_view_linked_students_subscriptions_and_offers(): void
+    {
+        $teacher = Teacher::create(['name' => 'Teacher A']);
+        $course = Course::create([
+            'subject_id' => Subject::create(['sub_category_id' => SubCategory::create([
+                'category_id' => Category::create(['name' => 'Category', 'order' => 1])->id,
+                'name' => 'SubCategory',
+                'order' => 1,
+            ])->id, 'name' => 'Subject', 'order' => 1])->id,
+            'teacher_id' => $teacher->id,
+            'title' => 'Math Course',
+            'description' => 'desc',
+            'price' => 120000,
+            'subscription_days' => 30,
+            'free_videos_count' => 0,
+            'allow_download' => false,
+        ]);
+
+        $offer = Offer::create([
+            'title' => 'Bundle Offer',
+            'description' => 'desc',
+            'price' => 300000,
+            'offer_starts_at' => now()->subDay(),
+            'offer_ends_at' => now()->addDays(30),
+            'access_duration_days' => 60,
+            'is_active' => true,
+        ]);
+        $offer->courses()->attach($course->id);
+
+        $student = User::factory()->create();
+
+        Subscription::create([
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'source' => 'direct',
+            'starts_at' => now()->subDays(10),
+            'expires_at' => now()->addDays(20),
+            'is_active' => true,
+        ]);
+
+        Subscription::create([
+            'student_id' => $student->id,
+            'course_id' => $course->id,
+            'source' => 'offer',
+            'offer_id' => $offer->id,
+            'starts_at' => now()->subDays(5),
+            'expires_at' => now()->addDays(55),
+            'is_active' => true,
+        ]);
+
+        $parent = ParentModel::create([
+            'name' => 'Parent',
+            'phone' => '+963911113334',
+            'password' => Hash::make('password'),
+            'phone_verified_at' => now(),
+        ]);
+        $parent->students()->attach($student->id);
+        Sanctum::actingAs($parent, ['access-api']);
+
+        $subscriptions = $this->getJson("/api/parent/students/{$student->id}/subscriptions");
+        $subscriptions->assertStatus(200);
+        $this->assertCount(2, $subscriptions->json('data'));
+        $this->assertSame('direct', $subscriptions->json('data.0.source'));
+        $this->assertSame('Teacher A', $subscriptions->json('data.0.teacher_name'));
+        $this->assertSame(120000, (int) $subscriptions->json('data.0.price'));
+
+        $offers = $this->getJson("/api/parent/students/{$student->id}/offers");
+        $offers->assertStatus(200);
+        $this->assertCount(1, $offers->json('data'));
+        $this->assertSame($offer->id, $offers->json('data.0.id'));
+        $this->assertSame('Bundle Offer', $offers->json('data.0.title'));
     }
 }

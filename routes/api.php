@@ -90,6 +90,8 @@ Route::middleware(['auth:sanctum', 'parent'])->prefix('parent')->group(function 
     Route::get('children', [ParentAppController::class, 'children']);
 
     Route::middleware('parent.student')->group(function () {
+        Route::get('students/{student_id}/subscriptions', [ParentAppController::class, 'subscriptions']);
+        Route::get('students/{student_id}/offers', [ParentAppController::class, 'offers']);
         Route::get('students/{student_id}/exam-attempts', [ParentAppController::class, 'examAttempts']);
         Route::get('students/{student_id}/exam-attempts/{id}', [ParentAppController::class, 'examAttempt']);
     });
