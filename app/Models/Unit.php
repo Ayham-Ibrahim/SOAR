@@ -19,7 +19,7 @@ class Unit extends Model
         'sub_category_id' => 'subject:sub_category_id',
         'subject_id' => 'subject_id',
         'teacher_id' => 'lessons.courses:teacher_id',
-        'course_id' => 'lessons.courses:id',
+        'course_id' => 'lessons.courses:courses.id',
         'unit_id' => 'id',
         'lesson_id' => 'lessons:id',
     ];

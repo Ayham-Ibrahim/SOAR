@@ -24,7 +24,7 @@ class Lesson extends Model
         'sub_category_id' => 'unit.subject:sub_category_id',
         'subject_id' => 'unit:subject_id',
         'teacher_id' => 'courses:teacher_id',
-        'course_id' => 'courses:id',
+        'course_id' => 'courses:courses.id',
         'unit_id' => 'unit_id',
         'lesson_id' => 'id',
     ];

@@ -17,6 +17,14 @@ use Illuminate\Database\Eloquent\Builder;
  * (resolved with a single whereHas, dot-relation nesting handled natively
  * by Eloquent).
  *
+ * Qualify the column with its table ("courses.id", not "id") whenever the
+ * relation path's last hop is a belongsToMany (lessons<->courses, joined
+ * through course_lesson) — that pivot has its own auto-increment id column,
+ * so an unqualified "id" is ambiguous to MySQL and throws Integrity
+ * constraint violation: 1052 Column 'id' in WHERE is ambiguous. Plain
+ * foreign-key columns (unit_id, teacher_id, ...) don't collide with the
+ * pivot's columns and stay unqualified.
+ *
  * Every filter is applied through when(), not if(): only the keys actually
  * present in $filters touch the query, so a request with none of them stays
  * a plain, unconstrained select instead of paying for a chain of no-op

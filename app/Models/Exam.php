@@ -20,7 +20,7 @@ class Exam extends Model
         'teacher_id' => 'course:teacher_id',
         'course_id' => 'course_id',
         'unit_id' => 'course.lessons:unit_id',
-        'lesson_id' => 'course.lessons:id',
+        'lesson_id' => 'course.lessons:lessons.id',
     ];
 
     protected $fillable = [

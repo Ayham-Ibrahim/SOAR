@@ -18,7 +18,7 @@ class Video extends Model
         'sub_category_id' => 'lesson.unit.subject:sub_category_id',
         'subject_id' => 'lesson.unit:subject_id',
         'teacher_id' => 'lesson.courses:teacher_id',
-        'course_id' => 'lesson.courses:id',
+        'course_id' => 'lesson.courses:courses.id',
         'unit_id' => 'lesson:unit_id',
         'lesson_id' => 'lesson_id',
     ];

@@ -1,0 +1,283 @@
+{
+  "info": {
+    "name": "SOAR - Unified Curriculum Filtering APIs",
+    "description": "مجموعة توثّق نظام التصفية الموحّد (Unified Filtering) المطبّق على كل صفحات الهيكل التعليمي في لوحة التحكم والتطبيق.\n\nسلسلة الهيكل: المرحلة الدراسية (category_id) → الصف (sub_category_id) → المادة (subject_id) → المعلم (teacher_id) → الدورة (course_id) → الوحدة (unit_id) → الدرس (lesson_id).\n\nكل الفلاتر اختيارية وقابلة للدمج مع بعضها (AND)، وتُطبَّق عبر when() فقط عند إرسالها — أي طلب بدون فلاتر يرجع كل السجلات بدون قيود. كل endpoint يدعم فقط الفلاتر المنطقية بالنسبة لموضعه في الهيكل (مثلاً الصفوف لا تُفلتَر بـ course_id لأنها أعلى من الدورة في الهيكل).\n\nطريقة الاستخدام:\n1) نفّذ طلب 'تسجيل الدخول' في مجلد 'المصادقة' — سيحفظ التوكن تلقائيًا في متغيّر المجموعة {{token}}.\n2) لطلبات /admin/* لازم يكون التوكن لمستخدم عنده صلاحية dashboard (Sanctum ability) وإلا يرجع 403.\n3) فعّل (enable) أي فلتر تريد اختباره من تبويب Params لكل طلب — كلها معطّلة افتراضيًا وقيمتها مثال (1).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost/api", "type": "string" },
+    { "key": "token", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "المصادقة",
+      "item": [
+        {
+          "name": "تسجيل الدخول (يحفظ التوكن تلقائيًا)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"0999999999\",\n  \"password\": \"password\",\n  \"type\": \"user\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "لتسجيل دخول أدمن (لاختبار /admin/* endpoints) استخدم حساب مستخدم عنده صلاحية dashboard، وضع \"type\": \"user\".\n\nالرد يحوي data.access_token — سكربت Tests أدناه يحفظه تلقائيًا في {{token}} ليُستخدم في باقي الطلبات عبر Bearer Auth الموروث من المجموعة."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res && res.data && res.data.access_token) {",
+                  "    pm.collectionVariables.set('token', res.data.access_token);",
+                  "    console.log('Token saved to {{token}}');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1) الصفوف - Sub-Categories",
+      "item": [
+        {
+          "name": "قائمة الصفوف (مع فلترة)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/sub-categories?category_id=1&sub_category_id=&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["sub-categories"],
+              "query": [
+                { "key": "category_id", "value": "1", "description": "فلترة الصفوف حسب المرحلة الدراسية (Category)." },
+                { "key": "sub_category_id", "value": "", "description": "فلترة صف معيّن بالذات (self id)، للتحقق فقط.", "disabled": true },
+                { "key": "per_page", "value": "15", "description": "عدد العناصر بالصفحة (افتراضي 15)." }
+              ]
+            },
+            "description": "لا يحتاج صلاحية أدمن — أي مستخدم مسجّل.\n\nالفلاتر المدعومة: category_id, sub_category_id, per_page."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2) المواد - Subjects",
+      "item": [
+        {
+          "name": "قائمة المواد (مع فلترة)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/subjects?category_id=1&sub_category_id=2&subject_id=&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["subjects"],
+              "query": [
+                { "key": "category_id", "value": "1", "description": "فلترة المواد حسب المرحلة الدراسية (عبر subCategory.category_id)." },
+                { "key": "sub_category_id", "value": "2", "description": "فلترة المواد حسب الصف مباشرة." },
+                { "key": "subject_id", "value": "", "description": "فلترة مادة معيّنة بالذات (self id).", "disabled": true },
+                { "key": "per_page", "value": "15", "description": "عدد العناصر بالصفحة." }
+              ]
+            },
+            "description": "لا يحتاج صلاحية أدمن.\n\nالفلاتر المدعومة: category_id, sub_category_id, subject_id, per_page."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3) الدورات - Courses",
+      "item": [
+        {
+          "name": "قائمة الدورات (مع فلترة كاملة)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/courses?category_id=1&sub_category_id=2&subject_id=3&teacher_id=4&course_id=&unit_id=&lesson_id=&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["courses"],
+              "query": [
+                { "key": "category_id", "value": "1", "description": "عبر subject.subCategory.category_id" },
+                { "key": "sub_category_id", "value": "2", "description": "عبر subject.sub_category_id" },
+                { "key": "subject_id", "value": "3", "description": "عمود مباشر على الدورة" },
+                { "key": "teacher_id", "value": "4", "description": "عمود مباشر على الدورة" },
+                { "key": "course_id", "value": "", "description": "فلترة دورة معيّنة بالذات (self id).", "disabled": true },
+                { "key": "unit_id", "value": "", "description": "دورات فيها درس تابع لهذه الوحدة (عبر lessons.unit_id).", "disabled": true },
+                { "key": "lesson_id", "value": "", "description": "دورات مرتبطة بهذا الدرس تحديدًا (عبر lessons.id).", "disabled": true },
+                { "key": "per_page", "value": "15", "description": "عدد العناصر بالصفحة." }
+              ]
+            },
+            "description": "لا يحتاج صلاحية أدمن (نفس الـ endpoint يُستخدم في التطبيق ولوحة التحكم).\n\nالفلاتر المدعومة (السبعة كاملة): category_id, sub_category_id, subject_id, teacher_id, course_id, unit_id, lesson_id, per_page."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4) لوحة التحكم - الهيكل التعليمي",
+      "item": [
+        {
+          "name": "قائمة الوحدات - Admin Units",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/admin/units?category_id=1&sub_category_id=2&subject_id=3&teacher_id=&course_id=&unit_id=&lesson_id=&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "units"],
+              "query": [
+                { "key": "category_id", "value": "1", "description": "عبر subject.subCategory.category_id" },
+                { "key": "sub_category_id", "value": "2", "description": "عبر subject.sub_category_id" },
+                { "key": "subject_id", "value": "3", "description": "عمود مباشر على الوحدة" },
+                { "key": "teacher_id", "value": "", "description": "وحدات فيها درس تابع لدورة هذا المعلم (عبر lessons.courses.teacher_id).", "disabled": true },
+                { "key": "course_id", "value": "", "description": "وحدات فيها درس مرتبط بهذه الدورة (عبر lessons.courses.id).", "disabled": true },
+                { "key": "unit_id", "value": "", "description": "فلترة وحدة معيّنة بالذات (self id).", "disabled": true },
+                { "key": "lesson_id", "value": "", "description": "الوحدة التي يتبعها هذا الدرس (عبر lessons.id).", "disabled": true },
+                { "key": "per_page", "value": "15", "description": "عدد العناصر بالصفحة." }
+              ]
+            },
+            "description": "يتطلب توكن أدمن (صلاحية dashboard).\n\nالفلاتر المدعومة: category_id, sub_category_id, subject_id, teacher_id, course_id, unit_id, lesson_id, per_page."
+          }
+        },
+        {
+          "name": "قائمة الدروس - Admin Lessons",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/admin/lessons?category_id=1&sub_category_id=2&subject_id=3&teacher_id=4&course_id=5&unit_id=6&lesson_id=&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "lessons"],
+              "query": [
+                { "key": "category_id", "value": "1", "description": "عبر unit.subject.subCategory.category_id" },
+                { "key": "sub_category_id", "value": "2", "description": "عبر unit.subject.sub_category_id" },
+                { "key": "subject_id", "value": "3", "description": "عبر unit.subject_id" },
+                { "key": "teacher_id", "value": "4", "description": "عبر courses.teacher_id (many-to-many)" },
+                { "key": "course_id", "value": "5", "description": "عبر courses.id (many-to-many pivot course_lesson)" },
+                { "key": "unit_id", "value": "6", "description": "عمود مباشر على الدرس" },
+                { "key": "lesson_id", "value": "", "description": "فلترة درس معيّن بالذات (self id).", "disabled": true },
+                { "key": "per_page", "value": "15", "description": "عدد العناصر بالصفحة." }
+              ]
+            },
+            "description": "يتطلب توكن أدمن.\n\nملاحظة: الدرس مرتبط بالدورة عبر جدول pivot (course_lesson) many-to-many وليس عمود مباشر، لذلك فلترة course_id/teacher_id تمر عبر whereHas على العلاقة courses.\n\nالفلاتر المدعومة: category_id, sub_category_id, subject_id, teacher_id, course_id, unit_id, lesson_id, per_page."
+          }
+        },
+        {
+          "name": "فيديوهات الدروس - Admin Videos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/admin/videos?category_id=1&sub_category_id=2&subject_id=3&teacher_id=4&course_id=5&unit_id=6&lesson_id=7&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "videos"],
+              "query": [
+                { "key": "category_id", "value": "1", "description": "عبر lesson.unit.subject.subCategory.category_id" },
+                { "key": "sub_category_id", "value": "2", "description": "عبر lesson.unit.subject.sub_category_id" },
+                { "key": "subject_id", "value": "3", "description": "عبر lesson.unit.subject_id" },
+                { "key": "teacher_id", "value": "4", "description": "عبر lesson.courses.teacher_id" },
+                { "key": "course_id", "value": "5", "description": "عبر lesson.courses.id" },
+                { "key": "unit_id", "value": "6", "description": "عبر lesson.unit_id" },
+                { "key": "lesson_id", "value": "7", "description": "عمود مباشر على الفيديو" },
+                { "key": "per_page", "value": "15", "description": "عدد العناصر بالصفحة." }
+              ]
+            },
+            "description": "يتطلب توكن أدمن.\n\nالفلاتر المدعومة: category_id, sub_category_id, subject_id, teacher_id, course_id, unit_id, lesson_id, per_page."
+          }
+        },
+        {
+          "name": "ملفات الدروس - Admin Files",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/admin/files?category_id=1&sub_category_id=2&subject_id=3&teacher_id=4&course_id=5&unit_id=6&lesson_id=7&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "files"],
+              "query": [
+                { "key": "category_id", "value": "1", "description": "عبر lesson.unit.subject.subCategory.category_id" },
+                { "key": "sub_category_id", "value": "2", "description": "عبر lesson.unit.subject.sub_category_id" },
+                { "key": "subject_id", "value": "3", "description": "عبر lesson.unit.subject_id" },
+                { "key": "teacher_id", "value": "4", "description": "عبر lesson.courses.teacher_id" },
+                { "key": "course_id", "value": "5", "description": "عبر lesson.courses.id" },
+                { "key": "unit_id", "value": "6", "description": "عبر lesson.unit_id" },
+                { "key": "lesson_id", "value": "7", "description": "عمود مباشر على الملف" },
+                { "key": "per_page", "value": "15", "description": "عدد العناصر بالصفحة." }
+              ]
+            },
+            "description": "يتطلب توكن أدمن.\n\nالفلاتر المدعومة: category_id, sub_category_id, subject_id, teacher_id, course_id, unit_id, lesson_id, per_page."
+          }
+        },
+        {
+          "name": "الامتحانات - Admin Exams",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/admin/exams?category_id=1&sub_category_id=2&subject_id=3&teacher_id=4&course_id=5&unit_id=6&lesson_id=7&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "exams"],
+              "query": [
+                { "key": "category_id", "value": "1", "description": "عبر course.subject.subCategory.category_id" },
+                { "key": "sub_category_id", "value": "2", "description": "عبر course.subject.sub_category_id" },
+                { "key": "subject_id", "value": "3", "description": "عبر course.subject_id" },
+                { "key": "teacher_id", "value": "4", "description": "عبر course.teacher_id" },
+                { "key": "course_id", "value": "5", "description": "عمود مباشر على الامتحان" },
+                { "key": "unit_id", "value": "6", "description": "امتحانات دورتها فيها درس بهذه الوحدة (عبر course.lessons.unit_id)." },
+                { "key": "lesson_id", "value": "7", "description": "امتحانات دورتها مرتبطة بهذا الدرس (عبر course.lessons.id)." },
+                { "key": "per_page", "value": "15", "description": "عدد العناصر بالصفحة." }
+              ]
+            },
+            "description": "يتطلب توكن أدمن.\n\nالفلاتر المدعومة: category_id, sub_category_id, subject_id, teacher_id, course_id, unit_id, lesson_id, per_page."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5) الامتحانات - Student",
+      "item": [
+        {
+          "name": "قائمة الامتحانات (طالب - نشِطة فقط)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/exams?category_id=1&sub_category_id=2&subject_id=3&teacher_id=4&course_id=5&unit_id=6&lesson_id=7&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["exams"],
+              "query": [
+                { "key": "category_id", "value": "1" },
+                { "key": "sub_category_id", "value": "2" },
+                { "key": "subject_id", "value": "3" },
+                { "key": "teacher_id", "value": "4" },
+                { "key": "course_id", "value": "5" },
+                { "key": "unit_id", "value": "6" },
+                { "key": "lesson_id", "value": "7" },
+                { "key": "per_page", "value": "15" }
+              ]
+            },
+            "description": "لا يحتاج صلاحية أدمن — نفس فلاتر /admin/exams بالضبط، لكن هذا الـ endpoint يرجّع فقط الامتحانات النشِطة (is_active = true) دائمًا بدون الحاجة لأي باراميتر إضافي.\n\nالفلاتر المدعومة: category_id, sub_category_id, subject_id, teacher_id, course_id, unit_id, lesson_id, per_page."
+          }
+        }
+      ]
+    }
+  ]
+}

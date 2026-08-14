@@ -23,7 +23,7 @@ class Course extends Model
         'teacher_id' => 'teacher_id',
         'course_id' => 'id',
         'unit_id' => 'lessons:unit_id',
-        'lesson_id' => 'lessons:id',
+        'lesson_id' => 'lessons:lessons.id',
     ];
 
     protected $fillable = [
