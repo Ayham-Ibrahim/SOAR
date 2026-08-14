@@ -9,14 +9,20 @@ use Illuminate\Support\Facades\Hash;
 
 class ParentAccountRequestService
 {
+    public function __construct(private readonly NotificationService $notificationService) {}
+
     public function submit(User $student, array $data): ParentAccountRequest
     {
-        return ParentAccountRequest::create([
+        $request = ParentAccountRequest::create([
             'requested_by_student_id' => $student->id,
             'parent_name' => $data['parent_name'],
             'parent_phone' => $data['parent_phone'],
             'password' => Hash::make($data['password']),
         ]);
+
+        $this->notificationService->notifyAdminNewParentAccountRequest($request);
+
+        return $request;
     }
 
     public function listForStudent(User $student, int $perPage = 15): LengthAwarePaginator
