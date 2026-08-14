@@ -41,4 +41,24 @@ class ParentController extends Controller
 
         return $this->success($attempt, 'تم جلب تفاصيل النتيجة بنجاح');
     }
+
+    public function subscriptions(Request $request, int $student_id)
+    {
+        $student = User::findOrFail($student_id);
+
+        return $this->success(
+            $this->parentAppService->subscriptionsForStudent($request->user(), $student),
+            'تم جلب اشتراكات الطالب بنجاح'
+        );
+    }
+
+    public function offers(Request $request, int $student_id)
+    {
+        $student = User::findOrFail($student_id);
+
+        return $this->success(
+            $this->parentAppService->offersForStudent($request->user(), $student),
+            'تم جلب العروض المشترك بها الطالب بنجاح'
+        );
+    }
 }
