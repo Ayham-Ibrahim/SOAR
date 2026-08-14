@@ -18,7 +18,7 @@ class SubCategoryController extends Controller
     public function index(Request $request)
     {
         $subCategories = $this->subCategoryService->list(
-            $request->integer('category_id') ?: null,
+            $this->curriculumFilters($request),
             $request->integer('per_page', 15)
         );
 

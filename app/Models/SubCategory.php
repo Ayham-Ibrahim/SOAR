@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\FiltersByCurriculum;
 use App\Models\Concerns\Orderable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +15,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class SubCategory extends Model
 {
-    use HasFactory, Orderable;
+    use FiltersByCurriculum, HasFactory, Orderable;
+
+    /** @see FiltersByCurriculum */
+    protected static array $curriculumFilters = [
+        'category_id' => 'category_id',
+        'sub_category_id' => 'id',
+    ];
 
     protected $fillable = [
         'category_id',

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\FiltersByCurriculum;
 use App\Models\Concerns\Orderable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Subject extends Model
 {
-    use HasFactory, Orderable, SoftDeletes;
+    use FiltersByCurriculum, HasFactory, Orderable, SoftDeletes;
+
+    /** @see FiltersByCurriculum */
+    protected static array $curriculumFilters = [
+        'category_id' => 'subCategory:category_id',
+        'sub_category_id' => 'sub_category_id',
+        'subject_id' => 'id',
+    ];
 
     protected $fillable = [
         'sub_category_id',

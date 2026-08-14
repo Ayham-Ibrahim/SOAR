@@ -17,7 +17,7 @@ class SubjectController extends Controller
     public function index(Request $request)
     {
         $subjects = $this->subjectService->list(
-            $request->integer('sub_category_id') ?: null,
+            $this->curriculumFilters($request),
             $request->integer('per_page', 15)
         );
 

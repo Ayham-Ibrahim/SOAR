@@ -20,7 +20,7 @@ class CourseController extends Controller
     public function index(Request $request)
     {
         $courses = $this->courseService->list(
-            $request->integer('subject_id') ?: null,
+            $this->curriculumFilters($request),
             $request->integer('per_page', 15)
         );
 

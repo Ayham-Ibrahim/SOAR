@@ -79,4 +79,26 @@ abstract class Controller
             ]
         ], 200);
     }
+
+    /**
+     * The unified curriculum hierarchy filter shared by every listing page
+     * (subjects, courses, units, lessons, videos, files, exams — see
+     * App\Models\Concerns\FiltersByCurriculum): only the keys the client
+     * actually sent make it into the array, so services can hand it
+     * straight to ->curriculumFilter() and rely on when() to skip the rest.
+     *
+     * @return array<string, int>
+     */
+    protected function curriculumFilters(\Illuminate\Http\Request $request): array
+    {
+        return $request->only([
+            'category_id',
+            'sub_category_id',
+            'subject_id',
+            'teacher_id',
+            'course_id',
+            'unit_id',
+            'lesson_id',
+        ]);
+    }
 }

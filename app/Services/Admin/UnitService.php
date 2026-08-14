@@ -7,11 +7,11 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class UnitService
 {
-    public function list(?int $subjectId = null, int $perPage = 15): LengthAwarePaginator
+    public function list(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         return Unit::query()
             ->with('subject')
-            ->when($subjectId, fn ($query) => $query->where('subject_id', $subjectId))
+            ->curriculumFilter($filters)
             ->paginate($perPage);
     }
 

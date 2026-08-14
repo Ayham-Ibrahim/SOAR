@@ -18,7 +18,7 @@ class ExamController extends Controller
     public function index(Request $request)
     {
         $exams = $this->examService->list(
-            $request->integer('course_id') ?: null,
+            $this->curriculumFilters($request),
             $request->integer('per_page', 15)
         );
 

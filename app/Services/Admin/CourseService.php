@@ -9,11 +9,11 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class CourseService
 {
-    public function list(?int $subjectId = null, int $perPage = 15): LengthAwarePaginator
+    public function list(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         return Course::query()
             ->with(['subject.subCategory.category', 'teacher'])
-            ->when($subjectId, fn ($query) => $query->where('subject_id', $subjectId))
+            ->curriculumFilter($filters)
             ->latest()
             ->paginate($perPage);
     }

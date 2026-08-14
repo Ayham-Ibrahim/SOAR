@@ -18,7 +18,7 @@ class VideoController extends Controller
     public function index(Request $request)
     {
         $videos = $this->videoService->list(
-            $request->integer('lesson_id') ?: null,
+            $this->curriculumFilters($request),
             $request->integer('per_page', 15)
         );
 

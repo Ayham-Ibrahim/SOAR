@@ -18,7 +18,7 @@ class FileController extends Controller
     public function index(Request $request)
     {
         $files = $this->fileService->list(
-            $request->integer('lesson_id') ?: null,
+            $this->curriculumFilters($request),
             $request->integer('per_page', 15)
         );
 

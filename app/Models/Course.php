@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\FiltersByCurriculum;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,18 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Course extends Model
 {
-    use HasFactory, SoftDeletes;
+    use FiltersByCurriculum, HasFactory, SoftDeletes;
+
+    /** @see FiltersByCurriculum */
+    protected static array $curriculumFilters = [
+        'category_id' => 'subject.subCategory:category_id',
+        'sub_category_id' => 'subject:sub_category_id',
+        'subject_id' => 'subject_id',
+        'teacher_id' => 'teacher_id',
+        'course_id' => 'id',
+        'unit_id' => 'lessons:unit_id',
+        'lesson_id' => 'lessons:id',
+    ];
 
     protected $fillable = [
         'subject_id',

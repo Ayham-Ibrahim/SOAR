@@ -8,11 +8,11 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class ExamService
 {
-    public function list(?int $courseId = null, int $perPage = 15, bool $activeOnly = false): LengthAwarePaginator
+    public function list(array $filters = [], int $perPage = 15, bool $activeOnly = false): LengthAwarePaginator
     {
         return Exam::query()
             ->withCount('questions')
-            ->when($courseId, fn ($query) => $query->where('course_id', $courseId))
+            ->curriculumFilter($filters)
             ->when($activeOnly, fn ($query) => $query->where('is_active', true))
             ->latest()
             ->paginate($perPage);

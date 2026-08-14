@@ -8,12 +8,12 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class SubjectService
 {
-    public function list(?int $subCategoryId = null, int $perPage = 15): LengthAwarePaginator
+    public function list(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         return Subject::query()
             ->with('subCategory')
             ->withCount('courses')
-            ->when($subCategoryId, fn ($query) => $query->where('sub_category_id', $subCategoryId))
+            ->curriculumFilter($filters)
             ->paginate($perPage);
     }
 

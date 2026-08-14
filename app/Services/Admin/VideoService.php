@@ -8,10 +8,10 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class VideoService
 {
-    public function list(?int $lessonId = null, int $perPage = 15): LengthAwarePaginator
+    public function list(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         return Video::query()
-            ->when($lessonId, fn ($query) => $query->where('lesson_id', $lessonId))
+            ->curriculumFilter($filters)
             ->paginate($perPage);
     }
 

@@ -19,7 +19,7 @@ class UnitController extends Controller
     public function index(Request $request)
     {
         $units = $this->unitService->list(
-            $request->integer('subject_id') ?: null,
+            $this->curriculumFilters($request),
             $request->integer('per_page', 15)
         );
 

@@ -18,8 +18,7 @@ class LessonController extends Controller
     public function index(Request $request)
     {
         $lessons = $this->lessonService->list(
-            $request->integer('course_id') ?: null,
-            $request->integer('unit_id') ?: null,
+            $this->curriculumFilters($request),
             $request->integer('per_page', 15)
         );
 
