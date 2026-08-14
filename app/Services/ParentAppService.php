@@ -48,7 +48,7 @@ class ParentAppService
                     'starts_at' => $subscription->starts_at?->toDateTimeString(),
                     'expires_at' => $subscription->expires_at?->toDateTimeString(),
                     'teacher_name' => $course?->teacher?->name,
-                    'price' => (float) ($course?->price ?? $offer?->price ?? 0),
+                    'price' => (float) ($offer?->price ?? $course?->price ??  0),
                     'course' => $course ? [
                         'id' => $course->id,
                         'title' => $course->title,
