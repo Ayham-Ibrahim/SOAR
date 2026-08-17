@@ -20,7 +20,7 @@ class StoreVideoRequest extends FormRequest
         return [
             'lesson_id' => ['required', 'integer', 'exists:lessons,id'],
             'title' => ['required', 'string', 'max:255'],
-            'video' => ['required', 'file', 'mimes:mp4,webm,ogg,mov,wmv', 'max:2147483648'],
+            'video' => ['required', 'file', 'mimes:mp4,webm,ogg,mov,wmv', 'max:3145728'],
             'thumbnail' => ['nullable', 'image', 'max:4096'],
             'duration_seconds' => ['nullable', 'integer', 'min:0'],
             'order' => ['nullable', 'integer', 'min:0'],
