@@ -20,7 +20,7 @@ class UpdateVideoRequest extends FormRequest
         return [
             'lesson_id' => ['sometimes', 'integer', 'exists:lessons,id'],
             'title' => ['sometimes', 'string', 'max:255'],
-            'video' => ['nullable', 'file', 'mimes:mp4,webm,ogg,mov,wmv', 'max:512000'],
+            'video' => ['nullable', 'file', 'mimes:mp4,webm,ogg,mov,wmv', 'max:2147483648'],
             'thumbnail' => ['nullable', 'image', 'max:4096'],
             'duration_seconds' => ['nullable', 'integer', 'min:0'],
             'order' => ['nullable', 'integer', 'min:0'],
