@@ -28,9 +28,9 @@ class FileStorage
             $originalName = $file->getClientOriginalName();
             $mime_type = $file->getMimeType();
             $extension = strtolower($file->getClientOriginalExtension());
-            if (preg_match('/\.[^.]+\./', $originalName)) {
-                self::throwValidationError('file', 'ان الملف الذي ارسلته غير امن');
-            }
+            // if (preg_match('/\.[^.]+\./', $originalName)) {
+            //     self::throwValidationError('file', 'ان الملف الذي ارسلته غير امن');
+            // }
 
             switch ($suffix) {
                 case 'img':
