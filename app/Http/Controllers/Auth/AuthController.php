@@ -12,6 +12,7 @@ use App\Http\Requests\Auth\LogoutRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\ResendOTPRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
+use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Services\Auth\AuthService;
 use Illuminate\Http\Request;
 
@@ -84,6 +85,18 @@ class AuthController extends Controller
         $result = $this->authService->logout($request->validated());
 
         return $this->success($result, 'Logout success');
+    }
+
+    public function profile(UpdateProfileRequest $request)
+    {
+        return $this->success($request->user(), 'تم جلب بيانات الملف الشخصي بنجاح');
+    }
+
+    public function updateProfile(UpdateProfileRequest $request)
+    {
+        $user = $this->authService->updateProfile($request->user(), $request->validated());
+
+        return $this->success($user, 'تم تحديث الملف الشخصي بنجاح');
     }
 
     /**

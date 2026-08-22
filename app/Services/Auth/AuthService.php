@@ -269,6 +269,21 @@ class AuthService
         return ['message' => 'تم تسجيل الخروج بنجاح'];
     }
 
+    public function updateProfile(User $account, array $data): User
+    {
+        $updates = [
+            'name' => $data['name'] ?? $account->name,
+        ];
+
+        if (isset($data['avatar'])) {
+            $updates['avatar'] = FileStorage::fileExists($data['avatar'], $account->avatar, 'avatars', 'img');
+        }
+
+        $account->update($updates);
+
+        return $account->fresh();
+    }
+
     /**
      * Send an OTP to reset the password.
      */
