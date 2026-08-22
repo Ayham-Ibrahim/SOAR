@@ -31,6 +31,7 @@ class Course extends Model
         'teacher_id',
         'title',
         'description',
+        'rul_channel',
         'price',
         'discount_price',
         'subscription_days',
