@@ -156,8 +156,6 @@ class AuthService
         }
 
         if ($credentials['type'] === 'user' && $account->is_admin) {
-            $account->tokens()->delete();
-
             $accessToken = $account->createToken('admin-access', ['dashboard'], now()->addHours(10))->plainTextToken;
             $refreshToken = $account->createToken('admin-refresh', ['refresh-dashboard'], now()->addHours(2))->plainTextToken;
 
