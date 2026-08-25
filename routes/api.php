@@ -57,11 +57,11 @@ Route::prefix('auth')->group(function () {
     });
 });
 
+Route::apiResource('governorates', GovernorateController::class)->only(['index']);
 Route::middleware('auth:sanctum')->group(function () {
     // Reference data & content tree: readable by ANY authenticated user, with
     // NO filtering by student attribute. The platform is open — every student
     // can browse every category/sub-category/subject/course.
-    Route::apiResource('governorates', GovernorateController::class)->only(['index']);
     Route::apiResource('schools', SchoolController::class)->only(['index', 'show']);
     Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
     Route::apiResource('sub-categories', SubCategoryController::class)->only(['index', 'show']);
