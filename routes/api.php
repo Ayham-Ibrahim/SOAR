@@ -26,6 +26,7 @@ use App\Http\Controllers\ExamAttemptController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\GovernorateController;
 use App\Http\Controllers\NewsController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\ParentAccountRequestController;
 use App\Http\Controllers\ParentController as ParentAppController;
@@ -56,6 +57,10 @@ Route::prefix('auth')->group(function () {
         Route::patch('profile', [AuthController::class, 'updateProfile']);
         Route::delete('account', [AuthController::class, 'deleteAccount']);
     });
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('notifications', [NotificationController::class, 'index']);
 });
 
 Route::apiResource('governorates', GovernorateController::class)->only(['index']);

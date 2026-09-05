@@ -101,7 +101,9 @@ class SendBroadcastNotification implements ShouldQueue
                 $query->whereIn('id', Arr::wrap($filters['student_ids']));
             });
 
-        $tokens = $query->get()->flatMap(function (User $user) {
+        $users = $query->get();
+
+        $tokens = $users->flatMap(function (User $user) {
             return $user->devices()->whereNotNull('fcm_token')->pluck('fcm_token');
         })->filter()->unique()->values()->toArray();
 
@@ -154,7 +156,9 @@ class SendBroadcastNotification implements ShouldQueue
             });
         });
 
-        $tokens = $query->get()->flatMap(function (ParentModel $parent) {
+        $parents = $query->get();
+
+        $tokens = $parents->flatMap(function (ParentModel $parent) {
             return $parent->devices()->whereNotNull('fcm_token')->pluck('fcm_token');
         })->filter()->unique()->values()->toArray();
 
@@ -212,4 +216,5 @@ class SendBroadcastNotification implements ShouldQueue
 
         return $totalSent;
     }
+
 }

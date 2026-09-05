@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -122,5 +123,10 @@ class User extends Authenticatable
     public function subscriptionRequests(): HasMany
     {
         return $this->hasMany(SubscriptionRequest::class, 'student_id');
+    }
+
+    public function userNotifications(): MorphMany
+    {
+        return $this->morphMany(UserNotification::class, 'notifiable');
     }
 }
