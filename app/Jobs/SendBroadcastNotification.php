@@ -94,6 +94,12 @@ class SendBroadcastNotification implements ShouldQueue
             ->when(! empty(Arr::get($filters, 'governorate_id')), function ($query) use ($filters) {
                 $query->where('governorate_id', (int) $filters['governorate_id']);
             })
+            ->when(! empty(Arr::get($filters, 'category_id')), function ($query) use ($filters) {
+                $query->where('category_id', (int) $filters['category_id']);
+            })
+            ->when(! empty(Arr::get($filters, 'study_type_id')), function ($query) use ($filters) {
+                $query->where('study_type_id', (int) $filters['study_type_id']);
+            })
             ->when(! empty(Arr::get($filters, 'gender')), function ($query) use ($filters) {
                 $query->where('gender', (string) $filters['gender']);
             })
@@ -133,6 +139,14 @@ class SendBroadcastNotification implements ShouldQueue
             $studentFilters['governorate_id'] = (int) $filters['governorate_id'];
         }
 
+        if (! empty(Arr::get($filters, 'category_id'))) {
+            $studentFilters['category_id'] = (int) $filters['category_id'];
+        }
+
+        if (! empty(Arr::get($filters, 'study_type_id'))) {
+            $studentFilters['study_type_id'] = (int) $filters['study_type_id'];
+        }
+
         if (! empty(Arr::get($filters, 'gender'))) {
             $studentFilters['gender'] = (string) $filters['gender'];
         }
@@ -146,6 +160,12 @@ class SendBroadcastNotification implements ShouldQueue
                 $studentQuery
                     ->when(isset($studentFilters['governorate_id']), function ($studentQuery) use ($studentFilters) {
                         $studentQuery->where('governorate_id', $studentFilters['governorate_id']);
+                    })
+                    ->when(isset($studentFilters['category_id']), function ($studentQuery) use ($studentFilters) {
+                        $studentQuery->where('category_id', $studentFilters['category_id']);
+                    })
+                    ->when(isset($studentFilters['study_type_id']), function ($studentQuery) use ($studentFilters) {
+                        $studentQuery->where('study_type_id', $studentFilters['study_type_id']);
                     })
                     ->when(isset($studentFilters['gender']), function ($studentQuery) use ($studentFilters) {
                         $studentQuery->where('gender', $studentFilters['gender']);
