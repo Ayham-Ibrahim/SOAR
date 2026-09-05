@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\ParentController as AdminParentController;
 use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\StudyTypeController;
 use App\Http\Controllers\Admin\SubscriptionRequestController as AdminSubscriptionRequestController;
 use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\UnitController;
@@ -58,12 +59,13 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::apiResource('governorates', GovernorateController::class)->only(['index']);
+Route::apiResource('categories', CategoryController::class)->only(['index']);
 Route::middleware('auth:sanctum')->group(function () {
     // Reference data & content tree: readable by ANY authenticated user, with
     // NO filtering by student attribute. The platform is open — every student
     // can browse every category/sub-category/subject/course.
     Route::apiResource('schools', SchoolController::class)->only(['index', 'show']);
-    Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
+    Route::apiResource('categories', CategoryController::class)->only(['show']);
     Route::apiResource('sub-categories', SubCategoryController::class)->only(['index', 'show']);
     Route::apiResource('subjects', SubjectController::class)->only(['index', 'show']);
     Route::apiResource('courses', CourseController::class)->only(['index', 'show']);
@@ -104,6 +106,7 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
     ->prefix('admin')
     ->group(function () {
         Route::apiResource('students', StudentController::class);
+        Route::apiResource('study-types', StudyTypeController::class);
         Route::apiResource('parents', AdminParentController::class);
         Route::post('parents/{parent}/students', [AdminParentController::class, 'addStudents']);
         Route::delete('parents/{parent}/students/{studentId}', [AdminParentController::class, 'removeStudent']);

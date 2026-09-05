@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Auth;
 
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RegisterRequest extends FormRequest
@@ -17,13 +16,11 @@ class RegisterRequest extends FormRequest
 
     /**
      * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'regex:/^\S+\s+\S+\s+\S+(?:\s+.*)?$/u'],
             'phone' => ['required', 'string', 'unique:users,phone'],
             'gender' => ['nullable', 'string', 'in:male,female'],
             'age' => ['nullable', 'string'],
@@ -31,8 +28,10 @@ class RegisterRequest extends FormRequest
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'fcm_token' => ['nullable', 'string'],
             // Informational only — never used to gate or filter content.
-            'governorate_id' => ['nullable', 'integer', 'exists:governorates,id'],
-            'school_id' => ['nullable', 'integer', 'exists:schools,id'],
+            'governorate_id' => ['required', 'integer', 'exists:governorates,id'],
+            'category_id' => ['required', 'integer', 'exists:categories,id'],
+            'school_id' => ['required', 'integer', 'exists:schools,id'],
+            'study_type_id' => ['required', 'integer', 'exists:study_types,id'],
         ];
     }
     
@@ -49,13 +48,14 @@ class RegisterRequest extends FormRequest
             'unique' => 'قيمة :attribute مستخدمة بالفعل.',
             'integer' => 'حقل :attribute يجب أن يكون رقماً صحيحاً.',
             'exists' => 'القيمة المحددة لحقل :attribute غير موجودة.',
+            'regex' => 'حقل :attribute يجب أن يتضمن الاسم الثلاثي.',
         ];
     }
 
     public function attributes(): array
     {
         return [
-            'name' => 'الاسم',
+            'name' => 'الاسم الثلاثي',
             'phone' => 'رقم الهاتف',
             'gender' => 'النوع',
             'age' => 'العمر',
@@ -63,7 +63,9 @@ class RegisterRequest extends FormRequest
             'password' => 'كلمة المرور',
             'fcm_token' => 'رمز الجهاز',
             'governorate_id' => 'المحافظة',
+            'category_id' => 'الصف',
             'school_id' => 'المدرسة',
+            'study_type_id' => 'نوع الدراسة',
         ];
     }
 }

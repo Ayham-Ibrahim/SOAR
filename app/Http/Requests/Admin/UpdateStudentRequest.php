@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Admin;
 
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -13,9 +12,6 @@ class UpdateStudentRequest extends FormRequest
         return true;
     }
 
-    /**
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         $studentId = $this->route('student')?->id;
@@ -30,7 +26,9 @@ class UpdateStudentRequest extends FormRequest
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             // Informational only — never used to gate or filter content.
             'governorate_id' => ['nullable', 'integer', 'exists:governorates,id'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'school_id' => ['nullable', 'integer', 'exists:schools,id'],
+            'study_type_id' => ['nullable', 'integer', 'exists:study_types,id'],
         ];
     }
 
@@ -61,7 +59,9 @@ class UpdateStudentRequest extends FormRequest
             'avatar' => 'الصورة',
             'password' => 'كلمة المرور',
             'governorate_id' => 'المحافظة',
+            'category_id' => 'الصف',
             'school_id' => 'المدرسة',
+            'study_type_id' => 'نوع الدراسة',
         ];
     }
 }

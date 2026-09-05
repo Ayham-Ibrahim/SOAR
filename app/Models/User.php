@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Concerns\HasDevices;
+use App\Models\StudyType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -28,6 +29,8 @@ class User extends Authenticatable
         'phone',
         'governorate_id',
         'school_id',
+        'category_id',
+        'study_type_id',
         'gender',
         'age',
         'avatar',
@@ -84,6 +87,16 @@ class User extends Authenticatable
     public function school(): BelongsTo
     {
         return $this->belongsTo(School::class);
+    }
+
+    public function studyType(): BelongsTo
+    {
+        return $this->belongsTo(StudyType::class);
+    }
+
+    public function grade(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'category_id');
     }
 
     public function examAttempts(): HasMany
