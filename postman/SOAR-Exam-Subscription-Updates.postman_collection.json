@@ -1,0 +1,356 @@
+{
+  "info": {
+    "name": "SOAR - Exam & Subscription Updates",
+    "description": "مجموعة Postman مستقلة لتعديلات الامتحانات وطلبات الاشتراك. تغطي العلامة النهائية القابلة للتخصيص، تصنيف الامتحان، إحصائيات المشاركين، تسليم الوقت، رفع صور الحل الكتابي حتى 10 صور، تفاصيل المحاولة، وإظهار الأستاذ في طلب الاشتراك.\n\nطريقة التشغيل:\n1) عدّل base_url والتوكنات والمعرفات في متغيرات المجموعة.\n2) نفّذ طلبات Admin Login وStudent Login وParent Login عند الحاجة.\n3) نفّذ الطلبات بالترتيب المقترح داخل المجلدات؛ الاختبارات تحفظ المعرفات تلقائيًا.\n4) طلب الصور الكتابية يستخدم multipart/form-data، وأضف كل صورة في حقل submission_files بنفس الاسم.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost/api", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "admin_token", "value": "", "type": "string" },
+    { "key": "student_token", "value": "", "type": "string" },
+    { "key": "parent_token", "value": "", "type": "string" },
+    { "key": "admin_phone", "value": "0999999999", "type": "string" },
+    { "key": "student_phone", "value": "0988888888", "type": "string" },
+    { "key": "parent_phone", "value": "0977777777", "type": "string" },
+    { "key": "password", "value": "password", "type": "string" },
+    { "key": "course_id", "value": "1", "type": "string" },
+    { "key": "exam_id", "value": "1", "type": "string" },
+    { "key": "written_exam_id", "value": "1", "type": "string" },
+    { "key": "question_id", "value": "1", "type": "string" },
+    { "key": "choice_id", "value": "1", "type": "string" },
+    { "key": "exam_attempt_id", "value": "1", "type": "string" },
+    { "key": "subscription_request_id", "value": "1", "type": "string" },
+    { "key": "per_page", "value": "15", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01 - Authentication",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{admin_phone}}\",\n  \"password\": \"{{password}}\",\n  \"type\": \"user\"\n}"
+            },
+            "url": "{{base_url}}/auth/login",
+            "description": "يسجل دخول مستخدم الإدارة ويحفظ access_token في admin_token وtoken."
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('Login succeeded', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+              "const json = pm.response.json();",
+              "if (json?.data?.access_token) { pm.collectionVariables.set('admin_token', json.data.access_token); pm.collectionVariables.set('token', json.data.access_token); }"
+            ] }
+          }]
+        },
+        {
+          "name": "Student Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{student_phone}}\",\n  \"password\": \"{{password}}\",\n  \"type\": \"user\"\n}"
+            },
+            "url": "{{base_url}}/auth/login",
+            "description": "يسجل دخول الطالب ويحفظ access_token في student_token وtoken."
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('Login succeeded', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+              "const json = pm.response.json();",
+              "if (json?.data?.access_token) { pm.collectionVariables.set('student_token', json.data.access_token); pm.collectionVariables.set('token', json.data.access_token); }"
+            ] }
+          }]
+        },
+        {
+          "name": "Parent Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{parent_phone}}\",\n  \"password\": \"{{password}}\",\n  \"type\": \"parent\"\n}"
+            },
+            "url": "{{base_url}}/auth/login",
+            "description": "يسجل دخول ولي الأمر ويحفظ access_token في parent_token وtoken."
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "type": "text/javascript", "exec": [
+              "pm.test('Login succeeded', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+              "const json = pm.response.json();",
+              "if (json?.data?.access_token) { pm.collectionVariables.set('parent_token', json.data.access_token); pm.collectionVariables.set('token', json.data.access_token); }"
+            ] }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "02 - Student Exam Flow",
+      "item": [
+        {
+          "name": "Get Active Exams - Classification",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{student_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/exams?per_page={{per_page}}",
+            "description": "يعرض الامتحانات النشطة، ويشمل التصنيف عبر course.subject وcourse.subject.subCategory."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Active exams loaded', function () { pm.expect(pm.response.code).to.equal(200); });"
+          ] } }]
+        },
+        {
+          "name": "Get Exam Questions",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{student_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/exams/{{exam_id}}",
+            "description": "يجلب أسئلة الامتحان وخياراتها. الإجابات الصحيحة لا تظهر للطالب. احفظ question_id وchoice_id من الاستجابة."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Exam questions loaded', function () { pm.expect(pm.response.code).to.equal(200); });",
+            "const json = pm.response.json();",
+            "if (json?.data?.questions?.[0]) { pm.collectionVariables.set('question_id', json.data.questions[0].id); if (json.data.questions[0].choices?.[0]) pm.collectionVariables.set('choice_id', json.data.questions[0].choices[0].id); }"
+          ] } }]
+        },
+        {
+          "name": "Submit Automated Exam - First Attempt",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{student_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"exam_id\": {{exam_id}},\n  \"time_spent_seconds\": 420,\n  \"answers\": [\n    {\n      \"question_id\": {{question_id}},\n      \"choice_id\": {{choice_id}}\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/exam-attempts",
+            "description": "تسليم الامتحان المؤتمت. يرسل الفرونت الزمن المستغرق في الحقل الوحيد time_spent_seconds. المحاولة الأولى تطلق إشعار النتيجة للإدارة وولي الأمر."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Automated exam submitted', function () { pm.expect(pm.response.code).to.equal(201); });",
+            "const json = pm.response.json();",
+            "if (json?.data?.id) pm.collectionVariables.set('exam_attempt_id', json.data.id);",
+            "pm.test('Elapsed time is returned', function () { pm.expect(json?.data?.time_spent_seconds).to.equal(420); });"
+          ] } }]
+        },
+        {
+          "name": "Submit Automated Exam - Later Attempt",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{student_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"exam_id\": {{exam_id}},\n  \"time_spent_seconds\": 300,\n  \"answers\": [\n    {\n      \"question_id\": {{question_id}},\n      \"choice_id\": {{choice_id}}\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/exam-attempts",
+            "description": "محاولة لاحقة لنفس الامتحان. لا ترسل إشعار نتيجة جديدًا للإدارة أو ولي الأمر."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Later attempt submitted', function () { pm.expect(pm.response.code).to.equal(201); });"
+          ] } }]
+        },
+        {
+          "name": "List Student Results",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{student_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/exam-attempts?exam_id={{exam_id}}&per_page={{per_page}}",
+            "description": "يعرض نتائج ومحاولات الطالب للامتحان، بما فيها score وtime_spent_seconds."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Written Exam Multiple Images",
+      "item": [
+        {
+          "name": "Submit Written Exam - Up To 10 Images",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{student_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "exam_id", "value": "{{written_exam_id}}", "type": "text" },
+                { "key": "time_spent_seconds", "value": "900", "type": "text" },
+                { "key": "submission_files", "type": "file", "src": "" },
+                { "key": "submission_files", "type": "file", "src": "" },
+                { "key": "submission_files", "type": "file", "src": "" },
+                { "key": "submission_files", "type": "file", "src": "" }
+              ]
+            },
+            "url": "{{base_url}}/exam-attempts",
+            "description": "اختر حتى 10 صور في حقول submission_files المتكررة. يمكن إضافة أو إزالة صفوف الملفات من Postman، وجميعها تحفظ في الحقل submission_files لنفس محاولة الطالب والامتحان."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Written exam submitted', function () { pm.expect(pm.response.code).to.equal(201); });",
+            "const json = pm.response.json();",
+            "if (json?.data?.id) pm.collectionVariables.set('exam_attempt_id', json.data.id);",
+            "pm.test('All files are stored in submission_files', function () { pm.expect(json?.data).to.have.property('submission_files'); });"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "04 - Admin Exam Classification & Participants",
+      "item": [
+        {
+          "name": "Create Exam - Custom Total Score",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "course_id", "value": "{{course_id}}", "type": "text" },
+                { "key": "title", "value": "Exam Score 200", "type": "text" },
+                { "key": "type", "value": "mcq", "type": "text" },
+                { "key": "total_score", "value": "200", "type": "text" },
+                { "key": "duration_minutes", "value": "30", "type": "text" },
+                { "key": "is_active", "value": "1", "type": "text" }
+              ]
+            },
+            "url": "{{base_url}}/admin/exams",
+            "description": "ينشئ امتحانًا بعلامة نهائية قابلة للتخصيص مثل 150 أو 200. القيمة الافتراضية في النظام 100 عند عدم الإرسال."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Exam created', function () { pm.expect(pm.response.code).to.equal(201); });",
+            "const json = pm.response.json();",
+            "if (json?.data?.id) pm.collectionVariables.set('exam_id', json.data.id);",
+            "pm.test('Custom total score returned', function () { pm.expect(json?.data?.total_score).to.equal(200); });"
+          ] } }]
+        },
+        {
+          "name": "List Admin Exams - Classification & Count",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/exams?per_page={{per_page}}",
+            "description": "يعرض course.subject للمادة، course.subject.subCategory للصف، وparticipants_count لعدد الطلاب الفريدين."
+          }
+        },
+        {
+          "name": "Exam Details - Classification & Count",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/exams/{{exam_id}}",
+            "description": "تفاصيل الامتحان مع المادة والصف وعدد المشاركين والأسئلة."
+          }
+        },
+        {
+          "name": "Exam Participants - Students & Scores",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/exams/{{exam_id}}/participants?per_page={{per_page}}",
+            "description": "قائمة paginated للطلاب الفريدين، مع student.name وscore وstatus وتواريخ التقديم والتصحيح. تظهر أحدث محاولة لكل طالب."
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Admin Attempt Review & Grading",
+      "item": [
+        {
+          "name": "List Exam Attempts",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/exam-attempts?exam_id={{exam_id}}&per_page={{per_page}}",
+            "description": "قائمة محاولات الامتحان للمراجعة."
+          }
+        },
+        {
+          "name": "Attempt Details - Full Student Exam Result",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/exam-attempts/{{exam_attempt_id}}",
+            "description": "يعرض اسم الطالب وبياناته الأساسية، اسم الامتحان والمادة والصف، تاريخ التقديم، الإجابات أو submission_files، العلامة، feedback، وحالة وتاريخ التصحيح."
+          }
+        },
+        {
+          "name": "Grade Written Attempt",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 85,\n  \"feedback\": \"إجابة جيدة مع بعض الملاحظات.\"\n}"
+            },
+            "url": "{{base_url}}/admin/exam-attempts/{{exam_attempt_id}}/grade",
+            "description": "تصحيح محاولة كتابية. عند ضبط total_score لا يمكن أن تتجاوز score العلامة النهائية."
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Subscription Request Details",
+      "item": [
+        {
+          "name": "Subscription Request Details - Course Teacher",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/subscription-requests/{{subscription_request_id}}",
+            "description": "تفاصيل طلب الاشتراك المباشر وتشمل course.teacher.name. وفي طلبات الباقات تظهر offer.courses[].teacher.name لكل دورة."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Subscription request details loaded', function () { pm.expect(pm.response.code).to.equal(200); });",
+            "const data = pm.response.json()?.data;",
+            "pm.test('Teacher relationship is present for direct course requests', function () { if (data?.course) pm.expect(data.course).to.have.property('teacher'); });"
+          ] } }]
+        }
+      ]
+    }
+  ]
+}
