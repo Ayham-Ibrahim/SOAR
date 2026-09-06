@@ -3,9 +3,9 @@
 namespace App\Services;
 
 use App\Models\Device;
-use App\Models\Notification;
 use App\Models\ParentModel;
 use App\Models\User;
+use App\Models\UserNotification;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -41,6 +41,20 @@ class FcmService
     public function sendToToken(string $token, string $title, string $body, array $data = []): bool
     {
         $this->initConfig();
+
+        $device = Device::query()->where('fcm_token', $token)->first();
+
+        if ($device?->deviceable) {
+            UserNotification::firstOrCreate(
+                [
+                    'notifiable_type' => $device->deviceable_type,
+                    'notifiable_id' => $device->deviceable_id,
+                    'title' => $title,
+                    'body' => $body,
+                ],
+                ['data' => $data]
+            );
+        }
 
         if (! file_exists($this->credentialsPath)) {
             Log::warning('FCM credentials file not found', ['path' => $this->credentialsPath]);

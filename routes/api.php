@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\ParentController as AdminParentController;
 use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\StudyTypeController;
 use App\Http\Controllers\Admin\SubscriptionRequestController as AdminSubscriptionRequestController;
 use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\UnitController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\ExamAttemptController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\GovernorateController;
 use App\Http\Controllers\NewsController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OfferController;
 use App\Http\Controllers\ParentAccountRequestController;
 use App\Http\Controllers\ParentController as ParentAppController;
@@ -57,13 +59,18 @@ Route::prefix('auth')->group(function () {
     });
 });
 
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('notifications', [NotificationController::class, 'index']);
+});
+
 Route::apiResource('governorates', GovernorateController::class)->only(['index']);
+Route::apiResource('categories', CategoryController::class)->only(['index']);
 Route::middleware('auth:sanctum')->group(function () {
     // Reference data & content tree: readable by ANY authenticated user, with
     // NO filtering by student attribute. The platform is open — every student
     // can browse every category/sub-category/subject/course.
     Route::apiResource('schools', SchoolController::class)->only(['index', 'show']);
-    Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
+    Route::apiResource('categories', CategoryController::class)->only(['show']);
     Route::apiResource('sub-categories', SubCategoryController::class)->only(['index', 'show']);
     Route::apiResource('subjects', SubjectController::class)->only(['index', 'show']);
     Route::apiResource('courses', CourseController::class)->only(['index', 'show']);
@@ -95,6 +102,7 @@ Route::middleware(['auth:sanctum', 'parent'])->prefix('parent')->group(function 
     Route::middleware('parent.student')->group(function () {
         Route::get('students/{student_id}/subscriptions', [ParentAppController::class, 'subscriptions']);
         Route::get('students/{student_id}/offers', [ParentAppController::class, 'offers']);
+        Route::get('students/{student_id}/academic-details', [ParentAppController::class, 'academicDetails']);
         Route::get('students/{student_id}/exam-attempts', [ParentAppController::class, 'examAttempts']);
         Route::get('students/{student_id}/exam-attempts/{id}', [ParentAppController::class, 'examAttempt']);
     });
@@ -104,6 +112,7 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
     ->prefix('admin')
     ->group(function () {
         Route::apiResource('students', StudentController::class);
+        Route::apiResource('study-types', StudyTypeController::class);
         Route::apiResource('parents', AdminParentController::class);
         Route::post('parents/{parent}/students', [AdminParentController::class, 'addStudents']);
         Route::delete('parents/{parent}/students/{studentId}', [AdminParentController::class, 'removeStudent']);

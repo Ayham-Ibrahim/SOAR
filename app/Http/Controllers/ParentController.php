@@ -17,7 +17,13 @@ class ParentController extends Controller
 
     public function children(Request $request)
     {
-        return $this->success($this->parentAppService->children($request->user()), 'تم جلب قائمة الأبناء بنجاح');
+        return $this->success(
+            $this->parentAppService->children(
+                $request->user(),
+                $request->string('search')->value() ?: null
+            ),
+            'تم جلب قائمة الأبناء بنجاح'
+        );
     }
 
     /**
@@ -59,6 +65,17 @@ class ParentController extends Controller
         return $this->success(
             $this->parentAppService->offersForStudent($request->user(), $student),
             'تم جلب العروض المشترك بها الطالب بنجاح'
+        );
+    }
+
+    public function academicDetails(Request $request, int $student_id)
+    {
+        return $this->success(
+            $this->parentAppService->academicDetailsForStudent(
+                $request->user(),
+                User::findOrFail($student_id)
+            ),
+            'تم جلب التفاصيل الأكاديمية للطالب بنجاح'
         );
     }
 }

@@ -7,6 +7,7 @@ use App\Models\ParentModel;
 use App\Models\Subscription;
 use App\Models\SubscriptionRequest;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 class NotificationService
@@ -38,7 +39,7 @@ class NotificationService
     {
         $studentName = $student->name ?? 'الطالب';
 
-        return $this->fcmService->sendToUser(
+        return $this->sendToRecipient(
             $student,
             'تمت الموافقة على طلب ولي الأمر',
             "تمت الموافقة على طلبك لإنشاء حساب ولي أمر، وتم ربط الطالب {$studentName} مع ولي الأمر {$parent->name}.",
@@ -51,7 +52,7 @@ class NotificationService
 
     public function notifyParentAccountApproved(ParentModel $parent, User $student): int
     {
-        return $this->fcmService->sendToParent(
+        return $this->sendToRecipient(
             $parent,
             'تمت الموافقة على الحساب',
             "تمت الموافقة على طلبك وربطك مع الطالب {$student->name}.",
@@ -64,7 +65,7 @@ class NotificationService
 
     public function notifyStudentParentAccountRejected(User $student, string $reason): int
     {
-        return $this->fcmService->sendToUser(
+        return $this->sendToRecipient(
             $student,
             'تم رفض طلب ولي الأمر',
             $reason !== '' ? "تم رفض طلبك: {$reason}" : 'تم رفض طلبك لإنشاء حساب ولي أمر. يرجى مراجعة البيانات والمحاولة مرة أخرى.',
@@ -107,7 +108,7 @@ class NotificationService
             ? ($request->course ? $request->course->title : 'الدورة')
             : ($request->offer ? $request->offer->title : 'الباقة');
 
-        return $this->fcmService->sendToUser(
+        return $this->sendToRecipient(
             $student,
             'تمت الموافقة على اشتراكك',
             "تمت الموافقة على طلب اشتراكك في {$label}.",
@@ -120,7 +121,7 @@ class NotificationService
 
     public function notifyStudentSubscriptionRejected(User $student, string $reason): int
     {
-        return $this->fcmService->sendToUser(
+        return $this->sendToRecipient(
             $student,
             'تم رفض طلب اشتراكك',
             $reason !== '' ? "تم رفض طلب اشتراكك: {$reason}" : 'تم رفض طلب اشتراكك. يرجى مراجعة البيانات والمحاولة مرة أخرى.',
@@ -136,7 +137,7 @@ class NotificationService
             ? $subscription->course->title
             : ($subscription->offer ? $subscription->offer->title : 'اشتراكك');
 
-        return $this->fcmService->sendToUser(
+        return $this->sendToRecipient(
             $student,
             'انتهت صلاحية اشتراكك',
             "انتهت صلاحية اشتراكك في {$label}. يمكنك تجديده من خلال التطبيق.",
@@ -178,10 +179,17 @@ class NotificationService
 
         foreach ($users as $user) {
             if ($user instanceof User) {
-                $sent += $this->fcmService->sendToUser($user, $title, $body, $data);
+                $sent += $this->sendToRecipient($user, $title, $body, $data);
             }
         }
 
         return $sent;
+    }
+
+    protected function sendToRecipient(Model $recipient, string $title, string $body, array $data = []): int
+    {
+        return $recipient instanceof ParentModel
+            ? $this->fcmService->sendToParent($recipient, $title, $body, $data)
+            : $this->fcmService->sendToUser($recipient, $title, $body, $data);
     }
 }

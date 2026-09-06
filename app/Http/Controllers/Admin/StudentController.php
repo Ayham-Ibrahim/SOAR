@@ -34,7 +34,10 @@ class StudentController extends Controller
 
     public function show(User $student)
     {
-        return $this->success($student, 'تم جلب بيانات الطالب بنجاح');
+        return $this->success(
+            $student->load(['grade', 'governorate', 'school']),
+            'تم جلب بيانات الطالب بنجاح'
+        );
     }
 
     public function update(UpdateStudentRequest $request, User $student)

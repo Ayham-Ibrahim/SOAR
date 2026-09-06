@@ -94,6 +94,12 @@ class SendBroadcastNotification implements ShouldQueue
             ->when(! empty(Arr::get($filters, 'governorate_id')), function ($query) use ($filters) {
                 $query->where('governorate_id', (int) $filters['governorate_id']);
             })
+            ->when(! empty(Arr::get($filters, 'category_id')), function ($query) use ($filters) {
+                $query->where('category_id', (int) $filters['category_id']);
+            })
+            ->when(! empty(Arr::get($filters, 'study_type_id')), function ($query) use ($filters) {
+                $query->where('study_type_id', (int) $filters['study_type_id']);
+            })
             ->when(! empty(Arr::get($filters, 'gender')), function ($query) use ($filters) {
                 $query->where('gender', (string) $filters['gender']);
             })
@@ -101,7 +107,9 @@ class SendBroadcastNotification implements ShouldQueue
                 $query->whereIn('id', Arr::wrap($filters['student_ids']));
             });
 
-        $tokens = $query->get()->flatMap(function (User $user) {
+        $users = $query->get();
+
+        $tokens = $users->flatMap(function (User $user) {
             return $user->devices()->whereNotNull('fcm_token')->pluck('fcm_token');
         })->filter()->unique()->values()->toArray();
 
@@ -131,6 +139,14 @@ class SendBroadcastNotification implements ShouldQueue
             $studentFilters['governorate_id'] = (int) $filters['governorate_id'];
         }
 
+        if (! empty(Arr::get($filters, 'category_id'))) {
+            $studentFilters['category_id'] = (int) $filters['category_id'];
+        }
+
+        if (! empty(Arr::get($filters, 'study_type_id'))) {
+            $studentFilters['study_type_id'] = (int) $filters['study_type_id'];
+        }
+
         if (! empty(Arr::get($filters, 'gender'))) {
             $studentFilters['gender'] = (string) $filters['gender'];
         }
@@ -145,6 +161,12 @@ class SendBroadcastNotification implements ShouldQueue
                     ->when(isset($studentFilters['governorate_id']), function ($studentQuery) use ($studentFilters) {
                         $studentQuery->where('governorate_id', $studentFilters['governorate_id']);
                     })
+                    ->when(isset($studentFilters['category_id']), function ($studentQuery) use ($studentFilters) {
+                        $studentQuery->where('category_id', $studentFilters['category_id']);
+                    })
+                    ->when(isset($studentFilters['study_type_id']), function ($studentQuery) use ($studentFilters) {
+                        $studentQuery->where('study_type_id', $studentFilters['study_type_id']);
+                    })
                     ->when(isset($studentFilters['gender']), function ($studentQuery) use ($studentFilters) {
                         $studentQuery->where('gender', $studentFilters['gender']);
                     })
@@ -154,7 +176,9 @@ class SendBroadcastNotification implements ShouldQueue
             });
         });
 
-        $tokens = $query->get()->flatMap(function (ParentModel $parent) {
+        $parents = $query->get();
+
+        $tokens = $parents->flatMap(function (ParentModel $parent) {
             return $parent->devices()->whereNotNull('fcm_token')->pluck('fcm_token');
         })->filter()->unique()->values()->toArray();
 
@@ -212,4 +236,5 @@ class SendBroadcastNotification implements ShouldQueue
 
         return $totalSent;
     }
+
 }

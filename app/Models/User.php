@@ -4,10 +4,12 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Models\Concerns\HasDevices;
+use App\Models\StudyType;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -28,6 +30,8 @@ class User extends Authenticatable
         'phone',
         'governorate_id',
         'school_id',
+        'category_id',
+        'study_type_id',
         'gender',
         'age',
         'avatar',
@@ -86,6 +90,16 @@ class User extends Authenticatable
         return $this->belongsTo(School::class);
     }
 
+    public function studyType(): BelongsTo
+    {
+        return $this->belongsTo(StudyType::class);
+    }
+
+    public function grade(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'category_id');
+    }
+
     public function examAttempts(): HasMany
     {
         return $this->hasMany(ExamAttempt::class);
@@ -109,5 +123,10 @@ class User extends Authenticatable
     public function subscriptionRequests(): HasMany
     {
         return $this->hasMany(SubscriptionRequest::class, 'student_id');
+    }
+
+    public function userNotifications(): MorphMany
+    {
+        return $this->morphMany(UserNotification::class, 'notifiable');
     }
 }

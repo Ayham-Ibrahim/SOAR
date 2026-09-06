@@ -15,9 +15,20 @@ use Illuminate\Support\Collection as SupportCollection;
  */
 class ParentAppService
 {
-    public function children(ParentModel $parent): Collection
+    public function children(ParentModel $parent, ?string $search = null): Collection
     {
-        return $parent->students()->get(['users.id', 'users.name', 'users.phone', 'users.avatar']);
+        return $parent->students()
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('users.name', 'like', "%{$search}%")
+                        ->orWhere('users.phone', 'like', "%{$search}%");
+
+                    if (ctype_digit($search)) {
+                        $query->orWhere('users.id', (int) $search);
+                    }
+                });
+            })
+            ->get(['users.id', 'users.name', 'users.phone', 'users.avatar']);
     }
 
     public function subscriptionsForStudent(ParentModel $parent, User $student): SupportCollection
@@ -115,6 +126,72 @@ class ParentAppService
                             ] : null,
                         ];
                     })->values()->all() ?? [],
+                ];
+            })
+            ->values();
+    }
+
+    public function academicDetailsForStudent(ParentModel $parent, User $student): SupportCollection
+    {
+        if (! $parent->students()->where('users.id', $student->id)->exists()) {
+            return collect();
+        }
+
+        $subscriptions = Subscription::query()
+            ->where('student_id', $student->id)
+            ->where('expires_at', '>', now())
+            ->with([
+                'course.subject',
+                'course.exams' => function ($query) use ($student) {
+                    $query->with([
+                        'attempts' => fn ($attempts) => $attempts
+                            ->where('user_id', $student->id)
+                            ->latest(),
+                    ]);
+                },
+            ])
+            ->get()
+            ->unique('course_id');
+
+        return $subscriptions
+            ->groupBy(fn (Subscription $subscription) => $subscription->course?->subject_id)
+            ->map(function ($subjectSubscriptions) {
+                $subject = $subjectSubscriptions->first()->course?->subject;
+
+                return [
+                    'subject' => $subject ? [
+                        'id' => $subject->id,
+                        'name' => $subject->name,
+                    ] : null,
+                    'courses' => $subjectSubscriptions->map(function (Subscription $subscription) {
+                        $course = $subscription->course;
+
+                        return [
+                            'id' => $course?->id,
+                            'title' => $course?->title,
+                            'starts_at' => $subscription->starts_at?->toDateTimeString(),
+                            'expires_at' => $subscription->expires_at?->toDateTimeString(),
+                            'exams' => $course?->exams->map(function ($exam) {
+                                return [
+                                    'id' => $exam->id,
+                                    'title' => $exam->title,
+                                    'type' => $exam->type,
+                                    'attempts' => $exam->attempts->map(function ($attempt) {
+                                        return [
+                                            'id' => $attempt->id,
+                                            'status' => $attempt->status,
+                                            'score' => $attempt->score,
+                                            'total_questions' => $attempt->total_questions,
+                                            'correct_answers' => $attempt->correct_answers,
+                                            'submitted_at' => $attempt->created_at?->toDateTimeString(),
+                                            'graded_at' => $attempt->graded_at?->toDateTimeString(),
+                                            'feedback' => $attempt->feedback,
+                                        ];
+                                    })->values()->all(),
+                                ];
+                            })->values()->all() ?? [],
+                        ];
+                    })->values()->all(),
                 ];
             })
             ->values();

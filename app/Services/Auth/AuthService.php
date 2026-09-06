@@ -44,7 +44,9 @@ class AuthService
                 'password' => Hash::make($data['password']),
                 'phone_verified_at' => null,
                 'governorate_id' => $data['governorate_id'] ?? null,
+                'category_id' => $data['category_id'] ?? null,
                 'school_id' => $data['school_id'] ?? null,
+                'study_type_id' => $data['study_type_id'] ?? null,
             ]);
 
             if ($data['fcm_token'] ?? false) {
@@ -123,7 +125,7 @@ class AuthService
                     'user' => $user->fresh(),
                     'access_token' => $accessToken,
                     'refresh_token' => $refreshToken,
-                    'expires_in' => 7200,
+                    'expires_in' => 189216000,
                 ],
             ];
         } catch (\Exception $e) {
@@ -156,8 +158,8 @@ class AuthService
         }
 
         if ($credentials['type'] === 'user' && $account->is_admin) {
-            $accessToken = $account->createToken('admin-access', ['dashboard'], now()->addHours(10))->plainTextToken;
-            $refreshToken = $account->createToken('admin-refresh', ['refresh-dashboard'], now()->addHours(2))->plainTextToken;
+            $accessToken = $account->createToken('admin-access', ['dashboard'], now()->addYears(6))->plainTextToken;
+            $refreshToken = $account->createToken('admin-refresh', ['refresh-dashboard'], now()->addYears(6))->plainTextToken;
 
             return [
                 'success' => true,
@@ -166,7 +168,7 @@ class AuthService
                     'user' => $account,
                     'access_token' => $accessToken,
                     'refresh_token' => $refreshToken,
-                    'expires_in' => 600,
+                    'expires_in' => 189216000,
                 ],
             ];
         }
@@ -197,7 +199,7 @@ class AuthService
                 'user' => $account,
                 'access_token' => $accessToken,
                 'refresh_token' => $refreshToken,
-                'expires_in' => 7200,
+                'expires_in' => 189216000,
             ],
         ];
     }
@@ -238,7 +240,7 @@ class AuthService
                     'user' => $account->fresh(),
                     'access_token' => $accessToken,
                     'refresh_token' => $refreshToken,
-                    'expires_in' => 7200,
+                    'expires_in' => 189216000,
                 ],
             ];
         } catch (\Exception $e) {
@@ -416,7 +418,7 @@ class AuthService
     }
 
     /**
-     * Issue a short-lived access token and a long-lived refresh token.
+    * Issue access and refresh tokens valid for six years.
      *
      * @return array{0: string, 1: string}
      */
@@ -424,8 +426,8 @@ class AuthService
     {
         $account->tokens()->delete();
 
-        $accessToken = $account->createToken('mobile-access', ['access-api'], now()->addHours(2))->plainTextToken;
-        $refreshToken = $account->createToken('mobile-refresh', ['refresh-token'], now()->addYear())->plainTextToken;
+        $accessToken = $account->createToken('mobile-access', ['access-api'], now()->addYears(6))->plainTextToken;
+        $refreshToken = $account->createToken('mobile-refresh', ['refresh-token'], now()->addYears(6))->plainTextToken;
 
         return [$accessToken, $refreshToken];
     }

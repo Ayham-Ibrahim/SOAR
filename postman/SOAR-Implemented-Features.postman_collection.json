@@ -1,0 +1,400 @@
+{
+  "info": {
+    "name": "SOAR - Implemented Features API",
+    "description": "مجموعة Postman شاملة للميزات المنفذة: تسجيل الطالب بالبيانات الأكاديمية، إدارة الصفوف وأنواع الدراسة، تفاصيل الطالب للأدمن، تخزين الإشعارات، فلاتر الإشعارات، اشتراك سنة افتراضية، رابط قناة الدورة للمشترك فقط، تفاصيل الطالب الأكاديمية لولي الأمر، والبحث ضمن أبناء ولي الأمر.\n\nطريقة الاستخدام:\n1) عدّل base_url إذا كان المشروع يعمل على عنوان مختلف.\n2) نفّذ تسجيل دخول الأدمن أو الطالب أو ولي الأمر؛ يتم حفظ التوكن تلقائيًا.\n3) الطلبات التي تحتاج أدمن تستخدم admin_token، وطلبات التطبيق تستخدم student_token، وطلبات ولي الأمر تستخدم parent_token.\n4) يمكن تشغيل الطلبات بالترتيب داخل كل مجلد للاستفادة من المتغيرات المحفوظة تلقائيًا.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost/api", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "admin_token", "value": "", "type": "string" },
+    { "key": "student_token", "value": "", "type": "string" },
+    { "key": "parent_token", "value": "", "type": "string" },
+    { "key": "study_type_id", "value": "1", "type": "string" },
+    { "key": "category_id", "value": "1", "type": "string" },
+    { "key": "student_id", "value": "1", "type": "string" },
+    { "key": "parent_id", "value": "1", "type": "string" },
+    { "key": "course_id", "value": "1", "type": "string" },
+    { "key": "subscription_request_id", "value": "1", "type": "string" },
+    { "key": "notification_id", "value": "1", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01 - Authentication",
+      "item": [
+        {
+          "name": "Login - Admin",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"0999999999\",\n  \"password\": \"password\",\n  \"type\": \"user\"\n}"
+            },
+            "url": "{{base_url}}/auth/login",
+            "description": "تسجيل دخول مستخدم أدمن يملك Sanctum ability باسم dashboard. يحفظ access_token في admin_token وtoken."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login succeeded', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "const json = pm.response.json();",
+                  "const accessToken = json?.data?.access_token;",
+                  "if (accessToken) { pm.collectionVariables.set('admin_token', accessToken); pm.collectionVariables.set('token', accessToken); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Student",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"0999999999\",\n  \"password\": \"password\",\n  \"type\": \"user\"\n}"
+            },
+            "url": "{{base_url}}/auth/login",
+            "description": "تسجيل دخول الطالب. استخدم حسابًا غير إداري، ثم يتم حفظ التوكن في student_token وtoken."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login succeeded', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "const json = pm.response.json();",
+                  "const accessToken = json?.data?.access_token;",
+                  "if (accessToken) { pm.collectionVariables.set('student_token', accessToken); pm.collectionVariables.set('token', accessToken); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Parent",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"0988888888\",\n  \"password\": \"password\",\n  \"type\": \"parent\"\n}"
+            },
+            "url": "{{base_url}}/auth/login",
+            "description": "تسجيل دخول ولي الأمر، ويحفظ التوكن في parent_token وtoken."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login succeeded', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "const json = pm.response.json();",
+                  "const accessToken = json?.data?.access_token;",
+                  "if (accessToken) { pm.collectionVariables.set('parent_token', accessToken); pm.collectionVariables.set('token', accessToken); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Student - Academic Details Required",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"أحمد محمد علي\",\n  \"phone\": \"0977777777\",\n  \"password\": \"password\",\n  \"password_confirmation\": \"password\",\n  \"governorate_id\": 1,\n  \"category_id\": {{category_id}},\n  \"school_id\": 1,\n  \"study_type_id\": {{study_type_id}},\n  \"fcm_token\": \"optional-device-token\"\n}"
+            },
+            "url": "{{base_url}}/auth/register",
+            "description": "إنشاء طالب. الاسم الثلاثي والمحافظة والصف والمدرسة ونوع الدراسة مطلوبة. بعد التسجيل يجب تنفيذ confirm-registration حسب OTP."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Reference Data and Student",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "List Grades - Public",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/categories",
+            "description": "جلب الصفوف/المراحل التي أضافها الأدمن لاستخدامها في شاشة تسجيل الطالب. القراءة عامة."
+          }
+        },
+        {
+          "name": "List Study Types - Admin",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/study-types",
+            "description": "جلب أنواع الدراسة من لوحة التحكم. يتطلب admin_token."
+          }
+        },
+        {
+          "name": "Create Study Type - Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"علمي\"\n}" },
+            "url": "{{base_url}}/admin/study-types",
+            "description": "إضافة نوع دراسة من لوحة التحكم. يحفظ study_type_id تلقائيًا."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json();", "const id = json?.data?.id;", "if (id) pm.collectionVariables.set('study_type_id', id);"] } }]
+        },
+        {
+          "name": "Update Study Type - Admin",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"علمي محدث\"\n}" },
+            "url": "{{base_url}}/admin/study-types/{{study_type_id}}"
+          }
+        },
+        {
+          "name": "Get Student Details - Admin",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/students/{{student_id}}",
+            "description": "يعرض بيانات الطالب مع grade وgovernorate وschool. يتطلب admin_token."
+          }
+        },
+        {
+          "name": "Update Student Academic Details - Admin",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"category_id\": {{category_id}},\n  \"governorate_id\": 1,\n  \"school_id\": 1,\n  \"study_type_id\": {{study_type_id}}\n}" },
+            "url": "{{base_url}}/admin/students/{{student_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Notifications",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "List My Notifications - User or Parent",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/notifications",
+            "description": "يعرض جميع إشعارات المستخدم الحالي بدون pagination. استخدم token المناسب: student_token أو parent_token."
+          }
+        },
+        {
+          "name": "List Broadcast Target Types - Admin",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/broadcast-notifications/target-types"
+          }
+        },
+        {
+          "name": "Send Notification - Study Type",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"إشعار للعلمي\",\n  \"content\": \"محتوى الإشعار\",\n  \"target_types\": [\"students\"],\n  \"study_type_id\": {{study_type_id}}\n}" },
+            "url": "{{base_url}}/admin/broadcast-notifications",
+            "description": "إرسال للطلاب حسب نوع الدراسة."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json();", "const id = json?.data?.id;", "if (id) pm.collectionVariables.set('notification_id', id);"] } }]
+        },
+        {
+          "name": "Send Notification - Grade",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"إشعار للصف\",\n  \"content\": \"محتوى الإشعار\",\n  \"target_types\": [\"students\"],\n  \"category_id\": {{category_id}}\n}" },
+            "url": "{{base_url}}/admin/broadcast-notifications"
+          }
+        },
+        {
+          "name": "Send Notification - Selected Students",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"إشعار لطلاب محددين\",\n  \"content\": \"محتوى الإشعار\",\n  \"target_types\": [\"students\"],\n  \"student_ids\": [{{student_id}}]\n}" },
+            "url": "{{base_url}}/admin/broadcast-notifications"
+          }
+        },
+        {
+          "name": "Send Notification - Parents of Selected Students",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"إشعار لأولياء الأمور\",\n  \"content\": \"محتوى الإشعار\",\n  \"target_types\": [\"parents\"],\n  \"student_ids\": [{{student_id}}]\n}" },
+            "url": "{{base_url}}/admin/broadcast-notifications"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Course Access",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{student_token}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "Course Details - Channel Hidden Without Subscription",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/courses/{{course_id}}",
+            "description": "باستخدام student_token غير المشترك يجب ألا يظهر rul_channel. باستخدام طالب مشترك باشتراك فعّال يظهر الرابط."
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Parent App",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{parent_token}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "Search Children By Name",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/parent/children?search=أحمد",
+            "description": "البحث ضمن أبناء ولي الأمر الحالي باستخدام اسم الطالب."
+          }
+        },
+        {
+          "name": "Search Children By Student Number",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/parent/children?search={{student_id}}",
+            "description": "البحث باستخدام id الطالب أو رقم هاتفه."
+          }
+        },
+        {
+          "name": "Student Academic Details By Subject",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/parent/students/{{student_id}}/academic-details",
+            "description": "يعرض المواد، الدورات المشترك بها، امتحانات كل دورة، نتائج المحاولات، وتاريخ تقديم الامتحان. يتطلب parent_token والطالب يجب أن يكون مرتبطًا بولي الأمر."
+          }
+        },
+        {
+          "name": "Child Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/parent/students/{{student_id}}/subscriptions"
+          }
+        },
+        {
+          "name": "Child Exam Attempts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/parent/students/{{student_id}}/exam-attempts?per_page=15"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Subscription Approval",
+      "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }]
+      },
+      "item": [
+        {
+          "name": "Approve Direct Subscription - Default One Year",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{base_url}}/admin/subscription-requests/{{subscription_request_id}}/approve",
+            "description": "طلب مباشر: عند عدم إرسال access_ends_at يتم اعتماد سنة كاملة تلقائيًا عبر now()->addYear()."
+          }
+        },
+        {
+          "name": "Approve Direct Subscription - Custom Date",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"access_ends_at\": \"2027-09-06\"\n}" },
+            "url": "{{base_url}}/admin/subscription-requests/{{subscription_request_id}}/approve",
+            "description": "طلب مباشر: عند إرسال access_ends_at يستخدم الأدمن التاريخ المحدد."
+          }
+        }
+      ]
+    }
+  ]
+}

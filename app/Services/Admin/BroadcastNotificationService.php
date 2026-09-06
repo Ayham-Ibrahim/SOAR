@@ -99,6 +99,14 @@ class BroadcastNotificationService
             $filters['governorate_id'] = (int) $data['governorate_id'];
         }
 
+        if (filled(Arr::get($data, 'category_id'))) {
+            $filters['category_id'] = (int) $data['category_id'];
+        }
+
+        if (filled(Arr::get($data, 'study_type_id'))) {
+            $filters['study_type_id'] = (int) $data['study_type_id'];
+        }
+
         if (filled(Arr::get($data, 'gender'))) {
             $filters['gender'] = (string) $data['gender'];
         }
