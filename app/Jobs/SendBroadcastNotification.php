@@ -97,6 +97,9 @@ class SendBroadcastNotification implements ShouldQueue
             ->when(! empty(Arr::get($filters, 'category_id')), function ($query) use ($filters) {
                 $query->where('category_id', (int) $filters['category_id']);
             })
+            ->when(! empty(Arr::get($filters, 'sub_category_id')), function ($query) use ($filters) {
+                $query->where('sub_category_id', (int) $filters['sub_category_id']);
+            })
             ->when(! empty(Arr::get($filters, 'study_type_id')), function ($query) use ($filters) {
                 $query->where('study_type_id', (int) $filters['study_type_id']);
             })
@@ -143,6 +146,10 @@ class SendBroadcastNotification implements ShouldQueue
             $studentFilters['category_id'] = (int) $filters['category_id'];
         }
 
+        if (! empty(Arr::get($filters, 'sub_category_id'))) {
+            $studentFilters['sub_category_id'] = (int) $filters['sub_category_id'];
+        }
+
         if (! empty(Arr::get($filters, 'study_type_id'))) {
             $studentFilters['study_type_id'] = (int) $filters['study_type_id'];
         }
@@ -163,6 +170,9 @@ class SendBroadcastNotification implements ShouldQueue
                     })
                     ->when(isset($studentFilters['category_id']), function ($studentQuery) use ($studentFilters) {
                         $studentQuery->where('category_id', $studentFilters['category_id']);
+                    })
+                    ->when(isset($studentFilters['sub_category_id']), function ($studentQuery) use ($studentFilters) {
+                        $studentQuery->where('sub_category_id', $studentFilters['sub_category_id']);
                     })
                     ->when(isset($studentFilters['study_type_id']), function ($studentQuery) use ($studentFilters) {
                         $studentQuery->where('study_type_id', $studentFilters['study_type_id']);
