@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Choice;
 use App\Models\Course;
 use App\Models\Exam;
+use App\Models\ExamAttempt;
 use App\Models\Offer;
 use App\Models\ParentModel;
 use App\Models\Question;
@@ -46,6 +47,7 @@ class ExamScoringAndParentResultsTest extends TestCase
     public function test_mcq_score_is_weighted_by_question_points(): void
     {
         $exam = Exam::create(['course_id' => $this->course()->id, 'title' => 'MCQ Exam', 'type' => 'mcq']);
+        $this->assertSame(100, $exam->total_score);
 
         $q1 = Question::create(['exam_id' => $exam->id, 'text' => 'Q1 worth 1 point', 'points' => 1]);
         $q1Correct = Choice::create(['question_id' => $q1->id, 'text' => 'right', 'is_correct' => true]);
@@ -74,6 +76,30 @@ class ExamScoringAndParentResultsTest extends TestCase
         $response->assertJsonPath('data.score', '25.00');
     }
 
+    public function test_mcq_score_uses_the_configured_exam_total_score(): void
+    {
+        $exam = Exam::create([
+            'course_id' => $this->course()->id,
+            'title' => 'High Score Exam',
+            'type' => 'mcq',
+            'total_score' => 200,
+        ]);
+
+        $question = Question::create(['exam_id' => $exam->id, 'text' => 'Q1', 'points' => 2]);
+        $correctChoice = Choice::create(['question_id' => $question->id, 'text' => 'right', 'is_correct' => true]);
+
+        Sanctum::actingAs(User::factory()->create(), ['access-api']);
+
+        $response = $this->postJson('/api/exam-attempts', [
+            'exam_id' => $exam->id,
+            'answers' => [['question_id' => $question->id, 'choice_id' => $correctChoice->id]],
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.score', '200.00')
+            ->assertJsonPath('data.exam.total_score', 200);
+    }
+
     public function test_admin_can_attach_an_image_or_pdf_to_an_exam(): void
     {
         Sanctum::actingAs(User::factory()->create(['is_admin' => true]), ['dashboard']);
@@ -84,10 +110,12 @@ class ExamScoringAndParentResultsTest extends TestCase
             'course_id' => $courseId,
             'title' => 'Written Exam',
             'type' => 'written',
+            'total_score' => 150,
             'attachment' => UploadedFile::fake()->image('question.jpg'),
         ]);
         $withImage->assertStatus(201);
         $this->assertNotNull($withImage->json('data.attachment'));
+        $withImage->assertJsonPath('data.total_score', 150);
 
         $withPdf = $this->postJson('/api/admin/exams', [
             'course_id' => $courseId,
@@ -97,6 +125,36 @@ class ExamScoringAndParentResultsTest extends TestCase
         ]);
         $withPdf->assertStatus(201);
         $this->assertNotNull($withPdf->json('data.attachment'));
+    }
+
+    public function test_admin_can_view_exam_classification_and_unique_participants(): void
+    {
+        $course = $this->course();
+        $exam = Exam::create([
+            'course_id' => $course->id,
+            'title' => 'Classified Exam',
+            'type' => 'mcq',
+        ]);
+        $firstStudent = User::factory()->create(['name' => 'First Student']);
+        $secondStudent = User::factory()->create(['name' => 'Second Student']);
+
+        ExamAttempt::create(['exam_id' => $exam->id, 'user_id' => $firstStudent->id, 'score' => 70, 'status' => 'graded']);
+        ExamAttempt::create(['exam_id' => $exam->id, 'user_id' => $firstStudent->id, 'score' => 80, 'status' => 'graded']);
+        ExamAttempt::create(['exam_id' => $exam->id, 'user_id' => $secondStudent->id, 'score' => 60, 'status' => 'graded']);
+
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true]), ['dashboard']);
+
+        $list = $this->getJson('/api/admin/exams');
+        $list->assertStatus(200)
+            ->assertJsonPath('data.0.course.subject.name', 'Subject')
+            ->assertJsonPath('data.0.course.subject.sub_category.name', 'SubCategory')
+            ->assertJsonPath('data.0.participants_count', 2);
+
+        $participants = $this->getJson("/api/admin/exams/{$exam->id}/participants");
+        $participants->assertStatus(200)
+            ->assertJsonCount(2, 'data')
+            ->assertJsonFragment(['score' => '80.00'])
+            ->assertJsonFragment(['score' => '60.00']);
     }
 
     public function test_parent_can_view_a_linked_students_exam_attempts(): void

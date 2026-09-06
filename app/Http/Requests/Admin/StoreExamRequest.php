@@ -24,6 +24,7 @@ class StoreExamRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'attachment' => ['nullable', 'file', 'mimes:jpeg,jpg,png,pdf', 'max:10240'],
             'duration_minutes' => ['nullable', 'integer', 'min:1'],
+            'total_score' => ['nullable', 'integer', 'min:1'],
             'passing_score' => ['nullable', 'integer', 'min:0', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
         ];
@@ -54,6 +55,7 @@ class StoreExamRequest extends FormRequest
             'description' => 'الوصف',
             'attachment' => 'ملف/صورة السؤال',
             'duration_minutes' => 'المدة (بالدقائق)',
+            'total_score' => 'العلامة النهائية',
             'passing_score' => 'علامة النجاح (%)',
             'is_active' => 'الحالة (فعّال)',
         ];

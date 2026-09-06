@@ -90,10 +90,10 @@ class ExamAttemptService
                 'correct_answers' => $correct,
                 'total_points' => $totalPoints,
                 'earned_points' => $earnedPoints,
-                'score' => $totalPoints > 0 ? round(($earnedPoints / $totalPoints) * 100, 2) : 0,
+                'score' => $this->calculateScore($exam, $earnedPoints, $totalPoints),
             ]);
 
-            return $attempt->fresh('answers');
+            return $attempt->fresh(['exam', 'answers']);
         });
     }
 
@@ -123,5 +123,14 @@ class ExamAttemptService
         ]);
 
         return $attempt->fresh();
+    }
+
+    private function calculateScore(Exam $exam, int $earnedPoints, int $totalPoints): float
+    {
+        if ($totalPoints <= 0) {
+            return 0;
+        }
+
+        return round(($earnedPoints / $totalPoints) * ($exam->total_score ?? 100), 2);
     }
 }

@@ -198,6 +198,7 @@ class ParentAppService
                                     'id' => $exam->id,
                                     'title' => $exam->title,
                                     'type' => $exam->type,
+                                    'total_score' => $exam->total_score,
                                     'attempts' => $exam->attempts->map(function ($attempt) {
                                         return [
                                             'id' => $attempt->id,

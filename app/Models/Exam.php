@@ -30,6 +30,7 @@ class Exam extends Model
         'description',
         'attachment',
         'duration_minutes',
+        'total_score',
         'passing_score',
         'is_active',
     ];
@@ -38,6 +39,7 @@ class Exam extends Model
     {
         return [
             'is_active' => 'boolean',
+            'total_score' => 'integer',
         ];
     }
 

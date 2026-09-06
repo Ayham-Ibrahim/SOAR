@@ -124,6 +124,7 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
         Route::apiResource('videos', VideoController::class);
         Route::apiResource('files', FileController::class);
         Route::apiResource('exams', AdminExamController::class);
+        Route::get('exams/{exam}/participants', [AdminExamController::class, 'participants']);
         Route::apiResource('questions', QuestionController::class);
         Route::apiResource('choices', ChoiceController::class);
         Route::apiResource('news', AdminNewsController::class);

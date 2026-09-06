@@ -34,10 +34,31 @@ class ExamController extends Controller
 
     public function show(Exam $exam)
     {
-        $exam->load('questions.choices');
+        $exam->load(['course.subject.subCategory.category', 'questions.choices']);
         $exam->loadCount('questions');
+        $exam->participants_count = $exam->attempts()->distinct('user_id')->count('user_id');
 
         return $this->success($exam, 'تم جلب بيانات الامتحان بنجاح');
+    }
+
+    public function participants(Request $request, Exam $exam)
+    {
+        $participants = $this->examService->participants(
+            $exam,
+            $request->integer('per_page', 15)
+        );
+
+        $participants->getCollection()->transform(function ($attempt) {
+            return [
+                'student' => $attempt->user,
+                'score' => $attempt->score,
+                'status' => $attempt->status,
+                'submitted_at' => $attempt->created_at?->toDateTimeString(),
+                'graded_at' => $attempt->graded_at?->toDateTimeString(),
+            ];
+        });
+
+        return $this->paginate($participants, 'تم جلب الطلاب المتقدمين للامتحان بنجاح');
     }
 
     public function update(UpdateExamRequest $request, Exam $exam)

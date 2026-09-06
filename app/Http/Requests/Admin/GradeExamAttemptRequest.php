@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\ExamAttempt;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -18,7 +19,19 @@ class GradeExamAttemptRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'score' => ['required', 'numeric', 'min:0', 'max:100'],
+            'score' => [
+                'required',
+                'numeric',
+                'min:0',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $attempt = $this->route('exam_attempt');
+                    $totalScore = $attempt instanceof ExamAttempt ? $attempt->exam?->total_score : null;
+
+                    if ($totalScore !== null && (float) $value > $totalScore) {
+                        $fail("حقل {$attribute} يجب ألا يزيد عن العلامة النهائية للامتحان.");
+                    }
+                },
+            ],
             'feedback' => ['nullable', 'string'],
         ];
     }

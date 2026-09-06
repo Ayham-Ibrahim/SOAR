@@ -3,6 +3,7 @@
 namespace App\Services\Admin;
 
 use App\Models\Exam;
+use App\Models\ExamAttempt;
 use App\Services\FileStorage;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -11,10 +12,31 @@ class ExamService
     public function list(array $filters = [], int $perPage = 15, bool $activeOnly = false): LengthAwarePaginator
     {
         return Exam::query()
+            ->with('course.subject.subCategory.category')
             ->withCount('questions')
+            ->selectSub(
+                ExamAttempt::query()
+                    ->selectRaw('COUNT(DISTINCT user_id)')
+                    ->whereColumn('exam_id', 'exams.id'),
+                'participants_count'
+            )
             ->curriculumFilter($filters)
             ->when($activeOnly, fn ($query) => $query->where('is_active', true))
             ->latest()
+            ->paginate($perPage);
+    }
+
+    public function participants(Exam $exam, int $perPage = 15): LengthAwarePaginator
+    {
+        $latestAttemptIds = ExamAttempt::query()
+            ->selectRaw('MAX(id)')
+            ->where('exam_id', $exam->id)
+            ->groupBy('user_id');
+
+        return ExamAttempt::query()
+            ->whereIn('id', $latestAttemptIds)
+            ->with('user:id,name')
+            ->latest('id')
             ->paginate($perPage);
     }
 
@@ -27,6 +49,7 @@ class ExamService
             'description' => $data['description'] ?? null,
             'attachment' => isset($data['attachment']) ? $this->storeAttachment($data['attachment']) : null,
             'duration_minutes' => $data['duration_minutes'] ?? null,
+            'total_score' => $data['total_score'] ?? 100,
             'passing_score' => $data['passing_score'] ?? null,
             'is_active' => $data['is_active'] ?? true,
         ]);
@@ -43,6 +66,7 @@ class ExamService
                 ? $this->storeAttachment($data['attachment'], $exam->attachment)
                 : $exam->attachment,
             'duration_minutes' => $data['duration_minutes'] ?? $exam->duration_minutes,
+            'total_score' => $data['total_score'] ?? $exam->total_score,
             'passing_score' => $data['passing_score'] ?? $exam->passing_score,
             'is_active' => $data['is_active'] ?? $exam->is_active,
         ]);
