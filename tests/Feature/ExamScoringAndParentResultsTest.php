@@ -162,12 +162,24 @@ class ExamScoringAndParentResultsTest extends TestCase
             'course_id' => $courseId,
             'title' => 'Written Exam',
             'type' => 'written',
-            'total_score' => 150,
+            'total_score' => 200,
+            'passing_score' => 130,
             'attachment' => UploadedFile::fake()->image('question.jpg'),
         ]);
         $withImage->assertStatus(201);
         $this->assertNotNull($withImage->json('data.attachment'));
-        $withImage->assertJsonPath('data.total_score', 150);
+        $withImage->assertJsonPath('data.total_score', 200);
+        $withImage->assertJsonPath('data.passing_score', 130);
+
+        $invalidPassingScore = $this->postJson('/api/admin/exams', [
+            'course_id' => $courseId,
+            'title' => 'Invalid Passing Score Exam',
+            'type' => 'mcq',
+            'total_score' => 200,
+            'passing_score' => 201,
+        ]);
+        $invalidPassingScore->assertStatus(422)
+            ->assertJsonValidationErrors(['passing_score']);
 
         $withPdf = $this->postJson('/api/admin/exams', [
             'course_id' => $courseId,

@@ -244,12 +244,13 @@
                 { "key": "title", "value": "Exam Score 200", "type": "text" },
                 { "key": "type", "value": "mcq", "type": "text" },
                 { "key": "total_score", "value": "200", "type": "text" },
+                { "key": "passing_score", "value": "130", "type": "text" },
                 { "key": "duration_minutes", "value": "30", "type": "text" },
                 { "key": "is_active", "value": "1", "type": "text" }
               ]
             },
             "url": "{{base_url}}/admin/exams",
-            "description": "ينشئ امتحانًا بعلامة نهائية قابلة للتخصيص مثل 150 أو 200. القيمة الافتراضية في النظام 100 عند عدم الإرسال."
+            "description": "ينشئ امتحانًا بعلامة نهائية قابلة للتخصيص مثل 150 أو 200، مع علامة نجاح مطلقة لا تتجاوز العلامة النهائية. مثال: total_score=200 وpassing_score=130. القيمة الافتراضية للعلامة النهائية 100 عند عدم الإرسال."
           },
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
             "pm.test('Exam created', function () { pm.expect(pm.response.code).to.equal(201); });",
