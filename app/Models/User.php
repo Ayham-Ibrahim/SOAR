@@ -101,7 +101,7 @@ class User extends Authenticatable
         return $this->belongsTo(Category::class, 'category_id');
     }
 
-    public function grade(): BelongsTo
+    public function subCategory(): BelongsTo
     {
         return $this->belongsTo(SubCategory::class);
     }
