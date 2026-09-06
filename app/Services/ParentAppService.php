@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\ParentModel;
+use App\Models\ExamAttempt;
+use App\Models\Course;
 use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
@@ -140,9 +142,26 @@ class ParentAppService
         $subscriptions = Subscription::query()
             ->where('student_id', $student->id)
             ->where('expires_at', '>', now())
+            ->get()
+            ->unique('course_id');
+
+        $attemptedCourseIds = ExamAttempt::query()
+            ->where('user_id', $student->id)
+            ->whereHas('exam')
+            ->with('exam:id,course_id')
+            ->get()
+            ->pluck('exam.course_id')
+            ->filter()
+            ->unique();
+
+        $courseIds = $subscriptions->pluck('course_id')->merge($attemptedCourseIds)->unique();
+
+        $courses = Course::query()
+            ->whereIn('id', $courseIds)
             ->with([
-                'course.subject',
-                'course.exams' => function ($query) use ($student) {
+                'subject',
+                'subscriptions' => fn ($query) => $query->where('student_id', $student->id),
+                'exams' => function ($query) use ($student) {
                     $query->with([
                         'attempts' => fn ($attempts) => $attempts
                             ->where('user_id', $student->id)
@@ -151,27 +170,30 @@ class ParentAppService
                 },
             ])
             ->get()
-            ->unique('course_id');
+            ->keyBy('id');
 
-        return $subscriptions
-            ->groupBy(fn (Subscription $subscription) => $subscription->course?->subject_id)
-            ->map(function ($subjectSubscriptions) {
-                $subject = $subjectSubscriptions->first()->course?->subject;
+        return $courses
+            ->groupBy(fn ($course) => $course->subject_id)
+            ->map(function ($subjectSubscriptions) use ($student) {
+                $subject = $subjectSubscriptions->first()->subject;
 
                 return [
                     'subject' => $subject ? [
                         'id' => $subject->id,
                         'name' => $subject->name,
                     ] : null,
-                    'courses' => $subjectSubscriptions->map(function (Subscription $subscription) {
-                        $course = $subscription->course;
+                    'courses' => $subjectSubscriptions->map(function ($course) use ($student) {
+                        $subscription = $course->subscriptions
+                            ->where('student_id', $student->id)
+                            ->sortByDesc('expires_at')
+                            ->first();
 
                         return [
-                            'id' => $course?->id,
-                            'title' => $course?->title,
-                            'starts_at' => $subscription->starts_at?->toDateTimeString(),
-                            'expires_at' => $subscription->expires_at?->toDateTimeString(),
-                            'exams' => $course?->exams->map(function ($exam) {
+                            'id' => $course->id,
+                            'title' => $course->title,
+                            'starts_at' => $subscription?->starts_at?->toDateTimeString(),
+                            'expires_at' => $subscription?->expires_at?->toDateTimeString(),
+                            'exams' => $course->exams->map(function ($exam) {
                                 return [
                                     'id' => $exam->id,
                                     'title' => $exam->title,
