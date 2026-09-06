@@ -20,16 +20,24 @@ class StoreExamAttemptRequest extends FormRequest
     {
         $exam = Exam::find($this->input('exam_id'));
         $isWritten = $exam?->type === 'written';
+        $timeRules = ['nullable', 'integer', 'min:0'];
 
         return [
             'exam_id' => ['required', 'integer', 'exists:exams,id'],
+            'time_spent_seconds' => $timeRules,
             'answers' => [$isWritten ? 'prohibited' : 'required', 'array'],
             'answers.*.question_id' => ['required_with:answers', 'integer', 'exists:questions,id'],
             'answers.*.choice_id' => ['required_with:answers', 'integer', 'exists:choices,id'],
-            'submission_file' => [
+            'submission_files' => [
                 $isWritten ? 'required' : 'prohibited',
+                'array',
+                'min:1',
+                'max:10',
+            ],
+            'submission_files.*' => [
                 'file',
-                'mimes:pdf,jpg,jpeg,png,doc,docx',
+                'image',
+                'mimes:jpg,jpeg,png',
                 'max:20480',
             ],
         ];
@@ -57,7 +65,8 @@ class StoreExamAttemptRequest extends FormRequest
             'answers' => 'الإجابات',
             'answers.*.question_id' => 'السؤال',
             'answers.*.choice_id' => 'الخيار المختار',
-            'submission_file' => 'ملف الحل',
+            'submission_files' => 'صور الحل',
+            'submission_files.*' => 'صورة الحل',
         ];
     }
 }

@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 
 class ExamAttemptService
 {
+    public function __construct(private readonly NotificationService $notificationService) {}
+
     /**
      * Submit an attempt for the given user. MCQ exams are graded immediately;
      * written exams are stored as a file submission pending manual review.
@@ -27,12 +29,23 @@ class ExamAttemptService
 
     private function submitWritten(Exam $exam, User $user, array $data): ExamAttempt
     {
-        return ExamAttempt::create([
-            'exam_id' => $exam->id,
-            'user_id' => $user->id,
-            'status' => 'pending_review',
-            'submission_file' => $this->storeAttachment($data['submission_file']),
-        ]);
+        return DB::transaction(function () use ($exam, $user, $data) {
+            $isFirstAttempt = $this->lockStudentAndCheckFirstAttempt($exam, $user);
+            $submissionFiles = $this->storeWrittenAttachments($data['submission_files']);
+            $attempt = ExamAttempt::create([
+                'exam_id' => $exam->id,
+                'user_id' => $user->id,
+                'status' => 'pending_review',
+                'time_spent_seconds' => $data['time_spent_seconds'] ?? null,
+                'submission_files' => $submissionFiles,
+            ]);
+
+            if ($isFirstAttempt) {
+                $this->notificationService->notifyExamResult($attempt);
+            }
+
+            return $attempt;
+        });
     }
 
     /**
@@ -48,13 +61,28 @@ class ExamAttemptService
             : FileStorage::storeFile($file, 'exam-submissions', $suffix);
     }
 
+    /**
+    * Store all written-exam images under the same attempt.
+     *
+     * @return array<int, string>
+     */
+    private function storeWrittenAttachments(array $files): array
+    {
+        return array_map(
+            fn ($file) => $this->storeAttachment($file),
+            array_values($files)
+        );
+    }
+
     private function submitMcq(Exam $exam, User $user, array $data): ExamAttempt
     {
         return DB::transaction(function () use ($exam, $user, $data) {
+            $isFirstAttempt = $this->lockStudentAndCheckFirstAttempt($exam, $user);
             $attempt = ExamAttempt::create([
                 'exam_id' => $exam->id,
                 'user_id' => $user->id,
                 'status' => 'graded',
+                'time_spent_seconds' => $data['time_spent_seconds'] ?? null,
                 'graded_at' => now(),
             ]);
 
@@ -92,6 +120,10 @@ class ExamAttemptService
                 'earned_points' => $earnedPoints,
                 'score' => $this->calculateScore($exam, $earnedPoints, $totalPoints),
             ]);
+
+            if ($isFirstAttempt) {
+                $this->notificationService->notifyExamResult($attempt->fresh(['exam', 'user']));
+            }
 
             return $attempt->fresh(['exam', 'answers']);
         });
@@ -133,4 +165,15 @@ class ExamAttemptService
 
         return round(($earnedPoints / $totalPoints) * ($exam->total_score ?? 100), 2);
     }
+
+    private function lockStudentAndCheckFirstAttempt(Exam $exam, User $user): bool
+    {
+        User::query()->whereKey($user->id)->lockForUpdate()->first();
+
+        return ! ExamAttempt::query()
+            ->where('exam_id', $exam->id)
+            ->where('user_id', $user->id)
+            ->exists();
+    }
+
 }

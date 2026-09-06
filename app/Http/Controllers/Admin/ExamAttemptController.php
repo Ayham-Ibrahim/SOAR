@@ -33,7 +33,16 @@ class ExamAttemptController extends Controller
     public function show(ExamAttempt $exam_attempt)
     {
         return $this->success(
-            $exam_attempt->load(['exam', 'user', 'answers.question', 'answers.choice']),
+            $exam_attempt->load([
+                'exam.course.subject.subCategory.category',
+                'user.governorate',
+                'user.school',
+                'user.category',
+                'user.subCategory',
+                'user.studyType',
+                'answers.question',
+                'answers.choice',
+            ]),
             'تم جلب بيانات المحاولة بنجاح'
         );
     }

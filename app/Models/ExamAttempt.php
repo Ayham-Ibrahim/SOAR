@@ -15,12 +15,13 @@ class ExamAttempt extends Model
         'exam_id',
         'user_id',
         'status',
+        'time_spent_seconds',
         'score',
         'total_questions',
         'correct_answers',
         'total_points',
         'earned_points',
-        'submission_file',
+        'submission_files',
         'feedback',
         'graded_at',
     ];
@@ -29,6 +30,8 @@ class ExamAttempt extends Model
     {
         return [
             'score' => 'decimal:2',
+            'time_spent_seconds' => 'integer',
+            'submission_files' => 'array',
             'graded_at' => 'datetime',
         ];
     }

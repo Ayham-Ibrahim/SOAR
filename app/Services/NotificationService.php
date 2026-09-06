@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\ParentAccountRequest;
 use App\Models\ParentModel;
+use App\Models\ExamAttempt;
 use App\Models\Subscription;
 use App\Models\SubscriptionRequest;
 use App\Models\User;
@@ -100,6 +101,35 @@ class NotificationService
                 'request_id' => (string) $request->id,
             ]
         );
+    }
+
+    public function notifyExamResult(ExamAttempt $attempt): int
+    {
+        $attempt->loadMissing(['exam', 'user.parents']);
+        $studentName = $attempt->user?->name ?? 'الطالب';
+        $examTitle = $attempt->exam?->title ?? 'الامتحان';
+        $score = $attempt->score !== null ? (string) $attempt->score : 'قيد التصحيح';
+        $title = 'نتيجة امتحان جديدة';
+        $body = "تقدم الطالب {$studentName} للامتحان {$examTitle}، والنتيجة: {$score}.";
+        $data = [
+            'type' => 'exam_result',
+            'exam_id' => (string) $attempt->exam_id,
+            'attempt_id' => (string) $attempt->id,
+            'student_id' => (string) $attempt->user_id,
+        ];
+
+        $sent = $this->sendToUsers(
+            User::query()->where('is_admin', true)->get(),
+            $title,
+            $body,
+            $data
+        );
+
+        foreach ($attempt->user?->parents ?? [] as $parent) {
+            $sent += $this->sendToRecipient($parent, $title, $body, $data);
+        }
+
+        return $sent;
     }
 
     public function notifyStudentSubscriptionApproved(User $student, SubscriptionRequest $request): int

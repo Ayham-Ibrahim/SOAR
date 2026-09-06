@@ -16,9 +16,11 @@ use App\Models\Subscription;
 use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Services\NotificationService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
+use Mockery;
 use Tests\TestCase;
 
 class ExamScoringAndParentResultsTest extends TestCase
@@ -100,6 +102,56 @@ class ExamScoringAndParentResultsTest extends TestCase
             ->assertJsonPath('data.exam.total_score', 200);
     }
 
+    public function test_student_submits_automated_exam_with_time_spent(): void
+    {
+        $exam = Exam::create([
+            'course_id' => $this->course()->id,
+            'title' => 'Timed Exam',
+            'type' => 'mcq',
+            'duration_minutes' => 30,
+        ]);
+        $question = Question::create(['exam_id' => $exam->id, 'text' => 'Timed question', 'points' => 1]);
+        $choice = Choice::create(['question_id' => $question->id, 'text' => 'right', 'is_correct' => true]);
+        $student = User::factory()->create();
+        Sanctum::actingAs($student, ['access-api']);
+
+        $response = $this->postJson('/api/exam-attempts', [
+            'exam_id' => $exam->id,
+            'time_spent_seconds' => 420,
+            'answers' => [['question_id' => $question->id, 'choice_id' => $choice->id]],
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.time_spent_seconds', 420)
+            ->assertJsonPath('data.exam.id', $exam->id);
+    }
+
+    public function test_exam_result_notification_is_sent_only_for_the_first_attempt(): void
+    {
+        $exam = Exam::create([
+            'course_id' => $this->course()->id,
+            'title' => 'Notification Exam',
+            'type' => 'mcq',
+        ]);
+        $question = Question::create(['exam_id' => $exam->id, 'text' => 'Question', 'points' => 1]);
+        $choice = Choice::create(['question_id' => $question->id, 'text' => 'right', 'is_correct' => true]);
+        $student = User::factory()->create();
+
+        $notificationService = Mockery::mock(NotificationService::class);
+        $notificationService->shouldReceive('notifyExamResult')->once();
+        $this->app->instance(NotificationService::class, $notificationService);
+        Sanctum::actingAs($student, ['access-api']);
+
+        $payload = [
+            'exam_id' => $exam->id,
+            'time_spent_seconds' => 30,
+            'answers' => [['question_id' => $question->id, 'choice_id' => $choice->id]],
+        ];
+
+        $this->postJson('/api/exam-attempts', $payload)->assertStatus(201);
+        $this->postJson('/api/exam-attempts', $payload)->assertStatus(201);
+    }
+
     public function test_admin_can_attach_an_image_or_pdf_to_an_exam(): void
     {
         Sanctum::actingAs(User::factory()->create(['is_admin' => true]), ['dashboard']);
@@ -125,6 +177,71 @@ class ExamScoringAndParentResultsTest extends TestCase
         ]);
         $withPdf->assertStatus(201);
         $this->assertNotNull($withPdf->json('data.attachment'));
+    }
+
+    public function test_written_exam_accepts_up_to_ten_solution_images_in_one_submission(): void
+    {
+        $exam = Exam::create([
+            'course_id' => $this->course()->id,
+            'title' => 'Written Images Exam',
+            'type' => 'written',
+        ]);
+        $student = User::factory()->create();
+        $notificationService = Mockery::mock(NotificationService::class);
+        $notificationService->shouldReceive('notifyExamResult')->once();
+        $this->app->instance(NotificationService::class, $notificationService);
+        Sanctum::actingAs($student, ['access-api']);
+
+        $images = array_map(
+            fn (int $index) => UploadedFile::fake()->image("solution-{$index}.jpg"),
+            range(1, 3)
+        );
+
+        $response = $this->post('/api/exam-attempts', [
+            'exam_id' => $exam->id,
+            'submission_files' => $images,
+        ]);
+
+        $response->assertStatus(201);
+        $attempt = ExamAttempt::findOrFail($response->json('data.id'));
+        $this->assertCount(3, $attempt->submission_files);
+
+        $this->postJson('/api/exam-attempts', [
+            'exam_id' => $exam->id,
+            'submission_files' => array_fill(0, 11, 'image'),
+        ])->assertStatus(422);
+    }
+
+    public function test_admin_attempt_details_include_student_exam_and_grading_information(): void
+    {
+        $exam = Exam::create([
+            'course_id' => $this->course()->id,
+            'title' => 'Detailed Written Exam',
+            'type' => 'written',
+        ]);
+        $student = User::factory()->create(['name' => 'Detailed Student']);
+        $attempt = ExamAttempt::create([
+            'exam_id' => $exam->id,
+            'user_id' => $student->id,
+            'status' => 'graded',
+            'score' => 85,
+            'submission_files' => ['/storage/exam-submissions/solution-1.jpg'],
+            'feedback' => 'إجابة جيدة مع بعض الملاحظات.',
+            'graded_at' => now(),
+        ]);
+
+        Sanctum::actingAs(User::factory()->create(['is_admin' => true]), ['dashboard']);
+
+        $response = $this->getJson("/api/admin/exam-attempts/{$attempt->id}");
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.user.name', 'Detailed Student')
+            ->assertJsonPath('data.exam.title', 'Detailed Written Exam')
+            ->assertJsonPath('data.exam.course.subject.name', 'Subject')
+            ->assertJsonPath('data.exam.course.subject.sub_category.name', 'SubCategory')
+            ->assertJsonPath('data.score', '85.00')
+            ->assertJsonPath('data.feedback', 'إجابة جيدة مع بعض الملاحظات.')
+            ->assertJsonPath('data.submission_files.0', '/storage/exam-submissions/solution-1.jpg');
     }
 
     public function test_admin_can_view_exam_classification_and_unique_participants(): void

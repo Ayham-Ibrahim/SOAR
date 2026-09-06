@@ -28,7 +28,12 @@ class SubscriptionRequestController extends Controller
     public function show(SubscriptionRequest $subscription_request)
     {
         return $this->success(
-            $subscription_request->load(['student', 'course', 'offer', 'reviewer:id,name']),
+            $subscription_request->load([
+                'student',
+                'course.teacher',
+                'offer.courses.teacher',
+                'reviewer:id,name',
+            ]),
             'تم جلب تفاصيل الطلب بنجاح'
         );
     }
