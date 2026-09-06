@@ -31,6 +31,7 @@ class User extends Authenticatable
         'governorate_id',
         'school_id',
         'category_id',
+        'sub_category_id',
         'study_type_id',
         'gender',
         'age',
@@ -95,9 +96,14 @@ class User extends Authenticatable
         return $this->belongsTo(StudyType::class);
     }
 
-    public function grade(): BelongsTo
+    public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class, 'category_id');
+    }
+
+    public function grade(): BelongsTo
+    {
+        return $this->belongsTo(SubCategory::class);
     }
 
     public function examAttempts(): HasMany

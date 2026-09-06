@@ -27,6 +27,7 @@ class UpdateStudentRequest extends FormRequest
             // Informational only — never used to gate or filter content.
             'governorate_id' => ['nullable', 'integer', 'exists:governorates,id'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'sub_category_id' => ['nullable', 'integer', 'exists:sub_categories,id'],
             'school_id' => ['nullable', 'integer', 'exists:schools,id'],
             'study_type_id' => ['nullable', 'integer', 'exists:study_types,id'],
         ];
@@ -60,6 +61,7 @@ class UpdateStudentRequest extends FormRequest
             'password' => 'كلمة المرور',
             'governorate_id' => 'المحافظة',
             'category_id' => 'الصف',
+            'sub_category_id' => 'الصف',
             'school_id' => 'المدرسة',
             'study_type_id' => 'نوع الدراسة',
         ];

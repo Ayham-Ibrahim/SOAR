@@ -45,6 +45,7 @@ class AuthService
                 'phone_verified_at' => null,
                 'governorate_id' => $data['governorate_id'] ?? null,
                 'category_id' => $data['category_id'] ?? null,
+                'sub_category_id' => $data['sub_category_id'] ?? null,
                 'school_id' => $data['school_id'] ?? null,
                 'study_type_id' => $data['study_type_id'] ?? null,
             ]);

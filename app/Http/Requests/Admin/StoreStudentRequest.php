@@ -23,7 +23,8 @@ class StoreStudentRequest extends FormRequest
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             // Informational only — never used to gate or filter content.
             'governorate_id' => ['required', 'integer', 'exists:governorates,id'],
-            'category_id' => ['required', 'integer', 'exists:categories,id'],
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'sub_category_id' => ['required', 'integer', 'exists:sub_categories,id'],
             'school_id' => ['required', 'integer', 'exists:schools,id'],
             'study_type_id' => ['required', 'integer', 'exists:study_types,id'],
         ];
@@ -57,7 +58,8 @@ class StoreStudentRequest extends FormRequest
             'avatar' => 'الصورة',
             'password' => 'كلمة المرور',
             'governorate_id' => 'المحافظة',
-            'category_id' => 'الصف',
+            'category_id' => 'المرحلة الدراسية',
+            'sub_category_id' => 'الصف',
             'school_id' => 'المدرسة',
             'study_type_id' => 'نوع الدراسة',
         ];
