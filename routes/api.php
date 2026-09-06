@@ -65,11 +65,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::apiResource('governorates', GovernorateController::class)->only(['index']);
 Route::apiResource('categories', CategoryController::class)->only(['index']);
+Route::apiResource('study-types', StudyTypeController::class)->only(['index']);
+Route::apiResource('schools', SchoolController::class)->only(['index', 'show']);
 Route::middleware('auth:sanctum')->group(function () {
     // Reference data & content tree: readable by ANY authenticated user, with
     // NO filtering by student attribute. The platform is open — every student
     // can browse every category/sub-category/subject/course.
-    Route::apiResource('schools', SchoolController::class)->only(['index', 'show']);
     Route::apiResource('categories', CategoryController::class)->only(['show']);
     Route::apiResource('sub-categories', SubCategoryController::class)->only(['index', 'show']);
     Route::apiResource('subjects', SubjectController::class)->only(['index', 'show']);
@@ -112,7 +113,7 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
     ->prefix('admin')
     ->group(function () {
         Route::apiResource('students', StudentController::class);
-        Route::apiResource('study-types', StudyTypeController::class);
+        Route::apiResource('study-types', StudyTypeController::class)->except(['index']);
         Route::apiResource('parents', AdminParentController::class);
         Route::post('parents/{parent}/students', [AdminParentController::class, 'addStudents']);
         Route::delete('parents/{parent}/students/{studentId}', [AdminParentController::class, 'removeStudent']);
