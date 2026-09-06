@@ -66,13 +66,14 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::apiResource('governorates', GovernorateController::class)->only(['index']);
 Route::apiResource('categories', CategoryController::class)->only(['index']);
 Route::apiResource('study-types', StudyTypeController::class)->only(['index']);
+Route::apiResource('sub-categories', SubCategoryController::class)->only(['index']);
 Route::apiResource('schools', SchoolController::class)->only(['index', 'show']);
 Route::middleware('auth:sanctum')->group(function () {
     // Reference data & content tree: readable by ANY authenticated user, with
     // NO filtering by student attribute. The platform is open — every student
     // can browse every category/sub-category/subject/course.
     Route::apiResource('categories', CategoryController::class)->only(['show']);
-    Route::apiResource('sub-categories', SubCategoryController::class)->only(['index', 'show']);
+    Route::apiResource('sub-categories', SubCategoryController::class)->only(['show']);
     Route::apiResource('subjects', SubjectController::class)->only(['index', 'show']);
     Route::apiResource('courses', CourseController::class)->only(['index', 'show']);
     Route::apiResource('news', NewsController::class)->only(['index', 'show']);

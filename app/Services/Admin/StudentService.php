@@ -32,6 +32,7 @@ class StudentService
             'phone_verified_at' => now(),
             'governorate_id' => $data['governorate_id'] ?? null,
             'category_id' => $data['category_id'] ?? null,
+            'sub_category_id' => $data['sub_category_id'] ?? null,
             'school_id' => $data['school_id'] ?? null,
             'study_type_id' => $data['study_type_id'] ?? null,
         ]);
@@ -51,6 +52,7 @@ class StudentService
             'password' => isset($data['password']) ? Hash::make($data['password']) : $student->password,
             'governorate_id' => $data['governorate_id'] ?? $student->governorate_id,
             'category_id' => $data['category_id'] ?? $student->category_id,
+            'sub_category_id' => $data['sub_category_id'] ?? $student->sub_category_id,
             'school_id' => $data['school_id'] ?? $student->school_id,
             'study_type_id' => $data['study_type_id'] ?? $student->study_type_id,
         ]);
