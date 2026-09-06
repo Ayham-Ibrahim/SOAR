@@ -38,7 +38,7 @@ class SubscriptionRequestService
                     'source' => 'direct',
                     'subscription_request_id' => $request->id,
                     'starts_at' => now(),
-                    'expires_at' => $accessEndsAt,
+                    'expires_at' => $accessEndsAt ?? now()->addYear(),
                 ]);
             } else {
                 $grantStart = now();

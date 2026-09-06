@@ -55,6 +55,9 @@ class CourseController extends Controller
         $this->courseService->withStats($course);
 
         $hasAccess = $this->courseAccess->hasAccess($request->user(), $course);
+        if (! $hasAccess) {
+            $course->makeHidden('rul_channel');
+        }
 
         $course->lessons->each(function ($lesson) use ($hasAccess) {
             $lesson->videos->each(function ($video) use ($hasAccess) {
