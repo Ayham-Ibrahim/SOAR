@@ -18,7 +18,7 @@ class StorePaymentMethodRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'option_name' => ['nullable', 'string', 'max:255'],
+            'option_name' => ['required', 'string', 'max:255'],
             'person_name' => ['nullable', 'string', 'max:255'],
             'person_phone' => ['nullable', 'string', 'max:50'],
             'qr_code' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:4096'],
