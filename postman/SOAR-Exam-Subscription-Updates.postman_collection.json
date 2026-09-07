@@ -352,6 +352,33 @@
           ] } }]
         }
       ]
+    },
+    {
+      "name": "07 - News Automatic Notification",
+      "item": [
+        {
+          "name": "Create News - Notify All Students and Parents",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "خبر جديد", "type": "text" },
+                { "key": "body", "value": "محتوى الخبر الجديد", "type": "text" },
+                { "key": "is_active", "value": "1", "type": "text" },
+                { "key": "image", "type": "file", "src": "" }
+              ]
+            },
+            "url": "{{base_url}}/admin/news",
+            "description": "عند نجاح إنشاء الخبر يتم إنشاء broadcast notification بحالة pending وإرساله عبر queue إلى جميع الطلاب وجميع أولياء الأمور. الصورة اختيارية."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('News created', function () { pm.expect(pm.response.code).to.equal(201); });"
+          ] } }]
+        }
+      ]
     }
   ]
 }

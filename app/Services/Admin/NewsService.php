@@ -4,10 +4,16 @@ namespace App\Services\Admin;
 
 use App\Models\News;
 use App\Services\FileStorage;
+use App\Services\Admin\BroadcastNotificationService;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class NewsService
 {
+    public function __construct(
+        private readonly BroadcastNotificationService $broadcastNotificationService
+    ) {
+    }
+
     public function list(int $perPage = 15): LengthAwarePaginator
     {
         return News::query()->latest()->paginate($perPage);
@@ -15,12 +21,20 @@ class NewsService
 
     public function create(array $data): News
     {
-        return News::create([
+        $news = News::create([
             'title' => $data['title'],
             'body' => $data['body'],
             'image' => isset($data['image']) ? FileStorage::storeFile($data['image'], 'news', 'img') : null,
             'is_active' => $data['is_active'] ?? true,
         ]);
+
+        $this->broadcastNotificationService->createAndSend([
+            'title' => "خبر جديد",
+            'content' => $news->body,
+            'target_types' => ['all'],
+        ]);
+
+        return $news;
     }
 
     public function update(News $news, array $data): News

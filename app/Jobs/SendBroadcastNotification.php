@@ -86,7 +86,7 @@ class SendBroadcastNotification implements ShouldQueue
      */
     private function sendToStudents(FcmService $fcmService): int
     {
-        $query = User::query();
+        $query = User::query()->where('is_admin', false);
 
         $filters = $this->notification->filters ?? [];
 
