@@ -23,7 +23,7 @@ class StorePaymentMethodRequest extends FormRequest
             'person_phone' => ['nullable', 'string', 'max:50'],
             'qr_code' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:4096'],
             'location' => ['nullable', 'string', 'max:255'],
-            'is_active' => ['nullable', 'boolean'],
+            'is_active' => ['required', 'boolean'],
         ];
     }
 
