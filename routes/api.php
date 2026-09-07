@@ -28,6 +28,7 @@ use App\Http\Controllers\GovernorateController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OfferController;
+use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\ParentAccountRequestController;
 use App\Http\Controllers\ParentController as ParentAppController;
 use App\Http\Controllers\SchoolController;
@@ -81,6 +82,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('advertisements', AdvertisementController::class)->only(['show']);
     Route::get('advertisements', [AdvertisementController::class,'getAdsUser']);
     Route::apiResource('offers', OfferController::class)->only(['index', 'show']);
+    Route::get('payment-methods', [PaymentMethodController::class, 'index']);
     Route::get('teachers', [TeacherController::class, 'activeIndex']);
 
     // Exam taking & results: scoped to the authenticated student.
@@ -130,6 +132,7 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
         Route::apiResource('news', AdminNewsController::class);
         Route::apiResource('advertisements', AdvertisementController::class);
         Route::apiResource('offers', AdminOfferController::class);
+        Route::apiResource('payment-methods', PaymentMethodController::class);
 
         Route::apiResource('exam-attempts', AdminExamAttemptController::class)->only(['index', 'show']);
         Route::patch('exam-attempts/{exam_attempt}/grade', [AdminExamAttemptController::class, 'grade']);

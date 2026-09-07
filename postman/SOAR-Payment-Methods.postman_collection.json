@@ -1,0 +1,170 @@
+{
+  "info": {
+    "name": "SOAR - Payment Methods",
+    "description": "مجموعة Postman مستقلة لإدارة طرق الدفع وعرضها للمستخدمين. تغطي CRUD للأدمن، عرض الخيارات النشطة للمستخدم، ورفع QR Code اختياري.\n\nالمتغيرات المطلوبة: base_url، admin_token، student_token. نفّذ Admin Login أو Student Login قبل الطلبات المحمية.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost/api", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "admin_token", "value": "", "type": "string" },
+    { "key": "student_token", "value": "", "type": "string" },
+    { "key": "admin_phone", "value": "0999999999", "type": "string" },
+    { "key": "student_phone", "value": "0988888888", "type": "string" },
+    { "key": "password", "value": "password", "type": "string" },
+    { "key": "payment_method_id", "value": "1", "type": "string" },
+    { "key": "per_page", "value": "15", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01 - Authentication",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{admin_phone}}\",\n  \"password\": \"{{password}}\",\n  \"type\": \"user\"\n}"
+            },
+            "url": "{{base_url}}/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Admin login succeeded', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+            "const json = pm.response.json();",
+            "if (json?.data?.access_token) { pm.collectionVariables.set('admin_token', json.data.access_token); pm.collectionVariables.set('token', json.data.access_token); }"
+          ] } }]
+        },
+        {
+          "name": "Student Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{student_phone}}\",\n  \"password\": \"{{password}}\",\n  \"type\": \"user\"\n}"
+            },
+            "url": "{{base_url}}/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Student login succeeded', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+            "const json = pm.response.json();",
+            "if (json?.data?.access_token) { pm.collectionVariables.set('student_token', json.data.access_token); pm.collectionVariables.set('token', json.data.access_token); }"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "02 - Admin CRUD",
+      "item": [
+        {
+          "name": "List All Payment Methods",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/payment-methods?per_page={{per_page}}",
+            "description": "يعرض جميع خيارات الدفع للأدمن، بما فيها غير النشطة."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Admin list succeeded', function () { pm.expect(pm.response.code).to.equal(200); });"
+          ] } }]
+        },
+        {
+          "name": "Create Payment Method With Optional QR",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "option_name", "value": "تحويل بنكي", "type": "text" },
+                { "key": "person_name", "value": "أحمد محمد", "type": "text" },
+                { "key": "person_phone", "value": "0999999999", "type": "text" },
+                { "key": "qr_code", "type": "file", "src": "" },
+                { "key": "location", "value": "دمشق - المزة", "type": "text" },
+                { "key": "is_active", "value": "1", "type": "text" }
+              ]
+            },
+            "url": "{{base_url}}/admin/payment-methods",
+            "description": "QR Code اختياري. جميع الحقول تسمح بقيمة null حسب التحقق الحالي."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Payment method created', function () { pm.expect(pm.response.code).to.equal(201); });",
+            "const json = pm.response.json();",
+            "if (json?.data?.id) pm.collectionVariables.set('payment_method_id', json.data.id);"
+          ] } }]
+        },
+        {
+          "name": "Get Payment Method",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/payment-methods/{{payment_method_id}}"
+          }
+        },
+        {
+          "name": "Update Payment Method",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "option_name", "value": "تحويل بنكي محدث", "type": "text" },
+                { "key": "person_name", "value": "أحمد محمد", "type": "text" },
+                { "key": "person_phone", "value": "0999999999", "type": "text" },
+                { "key": "location", "value": "دمشق - الموقع الجديد", "type": "text" },
+                { "key": "is_active", "value": "1", "type": "text" }
+              ]
+            },
+            "url": "{{base_url}}/admin/payment-methods/{{payment_method_id}}"
+          }
+        },
+        {
+          "name": "Delete Payment Method",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/payment-methods/{{payment_method_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - User View",
+      "item": [
+        {
+          "name": "List Active Payment Methods",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{student_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/payment-methods?per_page={{per_page}}",
+            "description": "يعرض للمستخدم خيارات الدفع النشطة فقط؛ is_active=false لا يظهر."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Active payment methods loaded', function () { pm.expect(pm.response.code).to.equal(200); });"
+          ] } }]
+        }
+      ]
+    }
+  ]
+}
