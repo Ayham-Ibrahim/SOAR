@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\Device;
 use App\Models\ParentModel;
 use App\Models\User;
 use App\Models\UserNotification;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -41,25 +41,6 @@ class FcmService
     public function sendToToken(string $token, string $title, string $body, array $data = []): bool
     {
         $this->initConfig();
-
-        $device = Device::query()->where('fcm_token', $token)->first();
-
-        if ($device?->deviceable) {
-            $notificationType = in_array($data['type'] ?? null, ['news', 'exam_result'], true)
-                ? $data['type']
-                : null;
-
-            UserNotification::firstOrCreate(
-                [
-                    'notifiable_type' => $device->deviceable_type,
-                    'notifiable_id' => $device->deviceable_id,
-                    'title' => $title,
-                    'body' => $body,
-                    'type' => $notificationType,
-                ],
-                ['data' => $data]
-            );
-        }
 
         if (! is_file($this->credentialsPath)) {
             Log::warning('FCM credentials file not found', ['path' => $this->credentialsPath]);
@@ -121,6 +102,8 @@ class FcmService
      */
     public function sendToUser(User $user, string $title, string $body, array $data = []): int
     {
+        $this->storeNotification($user, $title, $body, $data);
+
         $tokens = $user->devices()->whereNotNull('fcm_token')->pluck('fcm_token')->filter()->unique()->values()->all();
         $successCount = 0;
 
@@ -143,6 +126,8 @@ class FcmService
      */
     public function sendToParent(ParentModel $parent, string $title, string $body, array $data = []): int
     {
+        $this->storeNotification($parent, $title, $body, $data);
+
         $tokens = $parent->devices()->whereNotNull('fcm_token')->pluck('fcm_token')->filter()->unique()->values()->all();
         $successCount = 0;
 
@@ -159,6 +144,19 @@ class FcmService
 
         return $successCount;
     }
+
+    protected function storeNotification(Model $recipient, string $title, string $body, array $data): void
+    {
+        UserNotification::create([
+            'notifiable_type' => $recipient->getMorphClass(),
+            'notifiable_id' => $recipient->getKey(),
+            'title' => $title,
+            'body' => $body,
+            'type' => $data['type'] ?? null,
+            'data' => $data,
+        ]);
+    }
+
     /**
      * Send notification to multiple tokens (for broadcast notifications).
      *

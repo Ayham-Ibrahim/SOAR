@@ -13,7 +13,7 @@ class UserNotificationTypeTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_news_and_exam_result_types_are_stored_and_other_types_are_null(): void
+    public function test_notification_types_are_stored_for_all_notification_kinds(): void
     {
         putenv('FIREBASE_CREDENTIALS_FILE=missing-test-credentials.json');
 
@@ -25,12 +25,34 @@ class UserNotificationTypeTest extends TestCase
         ]);
         $fcmService = app(FcmService::class);
 
-        $fcmService->sendToToken('type-test-token', 'News', 'News body', ['type' => 'news']);
-        $fcmService->sendToToken('type-test-token', 'Exam', 'Exam body', ['type' => 'exam_result']);
-        $fcmService->sendToToken('type-test-token', 'Other', 'Other body', ['type' => 'broadcast']);
+        $fcmService->sendToUser($user, 'News', 'News body', ['type' => 'news']);
+        $fcmService->sendToUser($user, 'Exam', 'Exam body', ['type' => 'exam_result']);
+        $fcmService->sendToUser($user, 'Other', 'Other body', ['type' => 'broadcast']);
 
         $this->assertSame('news', UserNotification::where('title', 'News')->value('type'));
         $this->assertSame('exam_result', UserNotification::where('title', 'Exam')->value('type'));
-        $this->assertNull(UserNotification::where('title', 'Other')->value('type'));
+        $this->assertSame('broadcast', UserNotification::where('title', 'Other')->value('type'));
+    }
+
+    public function test_notification_is_stored_for_user_without_a_device(): void
+    {
+        putenv('FIREBASE_CREDENTIALS_FILE=missing-test-credentials.json');
+
+        $user = User::factory()->create();
+
+        $sent = app(FcmService::class)->sendToUser(
+            $user,
+            'No device',
+            'Stored in inbox',
+            ['type' => 'subscription_approved']
+        );
+
+        $this->assertSame(0, $sent);
+        $this->assertDatabaseHas('user_notifications', [
+            'notifiable_type' => $user->getMorphClass(),
+            'notifiable_id' => $user->id,
+            'title' => 'No device',
+            'type' => 'subscription_approved',
+        ]);
     }
 }

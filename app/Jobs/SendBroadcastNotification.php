@@ -112,11 +112,21 @@ class SendBroadcastNotification implements ShouldQueue
 
         $users = $query->get();
 
-        $tokens = $users->flatMap(function (User $user) {
-            return $user->devices()->whereNotNull('fcm_token')->pluck('fcm_token');
-        })->filter()->unique()->values()->toArray();
+        $totalSent = 0;
 
-        return $this->sendBatchNotifications($fcmService, $tokens);
+        foreach ($users as $user) {
+            $totalSent += $fcmService->sendToUser(
+                $user,
+                $this->notification->title,
+                $this->notification->content,
+                [
+                    'type' => $this->notification->filters['notification_type'] ?? 'broadcast',
+                    'notification_id' => (string) $this->notification->id,
+                ]
+            );
+        }
+
+        return $totalSent;
     }
 
     /**
@@ -188,11 +198,21 @@ class SendBroadcastNotification implements ShouldQueue
 
         $parents = $query->get();
 
-        $tokens = $parents->flatMap(function (ParentModel $parent) {
-            return $parent->devices()->whereNotNull('fcm_token')->pluck('fcm_token');
-        })->filter()->unique()->values()->toArray();
+        $totalSent = 0;
 
-        return $this->sendBatchNotifications($fcmService, $tokens);
+        foreach ($parents as $parent) {
+            $totalSent += $fcmService->sendToParent(
+                $parent,
+                $this->notification->title,
+                $this->notification->content,
+                [
+                    'type' => $this->notification->filters['notification_type'] ?? 'broadcast',
+                    'notification_id' => (string) $this->notification->id,
+                ]
+            );
+        }
+
+        return $totalSent;
     }
 
     /**
@@ -204,47 +224,6 @@ class SendBroadcastNotification implements ShouldQueue
         $parentTokens = $this->sendToParents($fcmService);
 
         return $studentTokens + $parentTokens;
-    }
-
-    /**
-     * Send notifications in batches.
-     */
-    private function sendBatchNotifications(FcmService $fcmService, array $tokens): int
-    {
-        if (empty($tokens)) {
-            return 0;
-        }
-
-        // Process in chunks of 500 to avoid memory issues
-        $chunks = array_chunk($tokens, 500);
-        $totalSent = 0;
-
-        foreach ($chunks as $chunk) {
-            try {
-                $result = $fcmService->sendToMultipleTokens(
-                    $chunk,
-                    $this->notification->title,
-                    $this->notification->content,
-                    [
-                        'type' => $this->notification->filters['notification_type'] ?? 'broadcast',
-                        'notification_id' => (string) $this->notification->id,
-                    ]
-                );
-
-                $totalSent += $result['success'];
-
-                // Update sent count incrementally
-                $this->notification->incrementSentCount($result['success']);
-            } catch (\Exception $e) {
-                Log::error("Failed to send notification batch", [
-                    'notification_id' => $this->notification->id,
-                    'batch_size' => count($chunk),
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        return $totalSent;
     }
 
 }
