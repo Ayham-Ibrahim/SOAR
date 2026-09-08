@@ -32,6 +32,7 @@ class NewsService
             'title' => "خبر جديد",
             'content' => $news->body,
             'target_types' => ['all'],
+            'notification_type' => 'news',
         ]);
 
         return $news;

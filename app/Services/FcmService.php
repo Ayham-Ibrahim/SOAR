@@ -45,18 +45,23 @@ class FcmService
         $device = Device::query()->where('fcm_token', $token)->first();
 
         if ($device?->deviceable) {
+            $notificationType = in_array($data['type'] ?? null, ['news', 'exam_result'], true)
+                ? $data['type']
+                : null;
+
             UserNotification::firstOrCreate(
                 [
                     'notifiable_type' => $device->deviceable_type,
                     'notifiable_id' => $device->deviceable_id,
                     'title' => $title,
                     'body' => $body,
+                    'type' => $notificationType,
                 ],
                 ['data' => $data]
             );
         }
 
-        if (! file_exists($this->credentialsPath)) {
+        if (! is_file($this->credentialsPath)) {
             Log::warning('FCM credentials file not found', ['path' => $this->credentialsPath]);
             return false;
         }

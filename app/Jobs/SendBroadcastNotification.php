@@ -226,7 +226,7 @@ class SendBroadcastNotification implements ShouldQueue
                     $this->notification->title,
                     $this->notification->content,
                     [
-                        'type' => 'broadcast',
+                        'type' => $this->notification->filters['notification_type'] ?? 'broadcast',
                         'notification_id' => (string) $this->notification->id,
                     ]
                 );

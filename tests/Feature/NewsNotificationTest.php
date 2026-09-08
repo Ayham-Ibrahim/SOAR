@@ -28,7 +28,7 @@ class NewsNotificationTest extends TestCase
 
         $notification = Notification::query()->latest('id')->first();
         $this->assertNotNull($notification);
-        $this->assertSame('خبر جديد: خبر جديد', $notification->title);
+        $this->assertSame('خبر جديد', $notification->title);
         $this->assertSame('محتوى الخبر الجديد', $notification->content);
         $this->assertSame(['all'], $notification->target_types);
 

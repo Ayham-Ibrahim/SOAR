@@ -103,6 +103,25 @@ class NotificationService
         );
     }
 
+    public function notifyAdminWrittenExamSubmitted(ExamAttempt $attempt): int
+    {
+        $attempt->loadMissing(['exam', 'user']);
+        $studentName = $attempt->user?->name ?? 'الطالب';
+        $examTitle = $attempt->exam?->title ?? 'الامتحان الكتابي';
+
+        return $this->sendToUsers(
+            User::query()->where('is_admin', true)->get(),
+            'تسليم امتحان كتابي جديد',
+            "قام الطالب {$studentName} بتسليم إجابة الامتحان {$examTitle}، وهي بانتظار التصحيح.",
+            [
+                'type' => 'written_exam_submitted',
+                'exam_id' => (string) $attempt->exam_id,
+                'attempt_id' => (string) $attempt->id,
+                'student_id' => (string) $attempt->user_id,
+            ]
+        );
+    }
+
     public function notifyExamResult(ExamAttempt $attempt): int
     {
         $attempt->loadMissing(['exam', 'user.parents']);
@@ -118,7 +137,14 @@ class NotificationService
             'student_id' => (string) $attempt->user_id,
         ];
 
-        $sent = $this->sendToUsers(
+        $sent = $this->sendToRecipient(
+            $attempt->user,
+            $title,
+            $body,
+            $data
+        );
+
+        $sent += $this->sendToUsers(
             User::query()->where('is_admin', true)->get(),
             $title,
             $body,

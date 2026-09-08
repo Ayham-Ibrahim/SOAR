@@ -40,9 +40,9 @@ class ExamAttemptService
                 'submission_files' => $submissionFiles,
             ]);
 
-            if ($isFirstAttempt) {
-                $this->notificationService->notifyExamResult($attempt);
-            }
+            $this->notificationService->notifyAdminWrittenExamSubmitted(
+                $attempt->fresh(['exam', 'user'])
+            );
 
             return $attempt;
         });
@@ -147,12 +147,22 @@ class ExamAttemptService
 
     public function grade(ExamAttempt $attempt, array $data): ExamAttempt
     {
+        $wasPendingReview = $attempt->status === 'pending_review';
+        $isFirstAttempt = ! ExamAttempt::query()
+            ->where('exam_id', $attempt->exam_id)
+            ->where('user_id', $attempt->user_id)
+            ->where('id', '<>', $attempt->id)
+            ->exists();
         $attempt->update([
             'score' => $data['score'],
             'feedback' => $data['feedback'] ?? null,
             'status' => 'graded',
             'graded_at' => now(),
         ]);
+
+        if ($wasPendingReview && $isFirstAttempt) {
+            $this->notificationService->notifyExamResult($attempt->fresh(['exam', 'user.parents']));
+        }
 
         return $attempt->fresh();
     }

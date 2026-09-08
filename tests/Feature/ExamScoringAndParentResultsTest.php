@@ -17,6 +17,7 @@ use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Services\NotificationService;
+use App\Services\FcmService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
@@ -152,6 +153,67 @@ class ExamScoringAndParentResultsTest extends TestCase
         $this->postJson('/api/exam-attempts', $payload)->assertStatus(201);
     }
 
+    public function test_exam_result_notification_targets_student_and_parent(): void
+    {
+        $exam = Exam::create([
+            'course_id' => $this->course()->id,
+            'title' => 'Result Notification Exam',
+            'type' => 'mcq',
+        ]);
+        $student = User::factory()->create(['name' => 'Student Result']);
+        $parent = ParentModel::create([
+            'name' => 'Parent Result',
+            'phone' => '+963911110001',
+            'password' => 'password',
+            'phone_verified_at' => now(),
+        ]);
+        $parent->students()->attach($student->id);
+        $attempt = ExamAttempt::create([
+            'exam_id' => $exam->id,
+            'user_id' => $student->id,
+            'status' => 'graded',
+            'score' => 85,
+        ]);
+
+        $fcmService = Mockery::mock(FcmService::class);
+        $fcmService->shouldReceive('sendToUser')->once()->withArgs(function ($recipient, $title, $body, $data) use ($student) {
+            return $recipient->is($student) && $data['type'] === 'exam_result';
+        })->andReturn(1);
+        $fcmService->shouldReceive('sendToParent')->once()->withArgs(function ($recipient, $title, $body, $data) use ($parent) {
+            return $recipient->is($parent) && $data['type'] === 'exam_result';
+        })->andReturn(1);
+
+        app(NotificationService::class, ['fcmService' => $fcmService])->notifyExamResult($attempt);
+    }
+
+    public function test_written_exam_submission_notification_targets_admins(): void
+    {
+        $exam = Exam::create([
+            'course_id' => $this->course()->id,
+            'title' => 'Written Notification Exam',
+            'type' => 'written',
+        ]);
+        $student = User::factory()->create(['name' => 'Written Student']);
+        $admin = User::factory()->create(['is_admin' => true]);
+        $attempt = ExamAttempt::create([
+            'exam_id' => $exam->id,
+            'user_id' => $student->id,
+            'status' => 'pending_review',
+        ]);
+
+        $fcmService = Mockery::mock(FcmService::class);
+        $fcmService->shouldReceive('sendToUser')->once()->withArgs(function ($recipient, $title, $body, $data) use ($admin, $student, $exam, $attempt) {
+            return $recipient->is($admin)
+                && $data['type'] === 'written_exam_submitted'
+                && $data['exam_id'] === (string) $exam->id
+                && $data['attempt_id'] === (string) $attempt->id
+                && $data['student_id'] === (string) $student->id;
+        })->andReturn(1);
+
+        app(NotificationService::class, ['fcmService' => $fcmService])
+            ->notifyAdminWrittenExamSubmitted($attempt);
+    }
+
     public function test_admin_can_attach_an_image_or_pdf_to_an_exam(): void
     {
         Sanctum::actingAs(User::factory()->create(['is_admin' => true]), ['dashboard']);
@@ -200,7 +262,10 @@ class ExamScoringAndParentResultsTest extends TestCase
         ]);
         $student = User::factory()->create();
         $notificationService = Mockery::mock(NotificationService::class);
-        $notificationService->shouldReceive('notifyExamResult')->once();
+        $notificationService->shouldReceive('notifyAdminWrittenExamSubmitted')
+            ->once()
+            ->with(Mockery::type(ExamAttempt::class));
+        $notificationService->shouldReceive('notifyExamResult')->once()->with(Mockery::type(ExamAttempt::class));
         $this->app->instance(NotificationService::class, $notificationService);
         Sanctum::actingAs($student, ['access-api']);
 
@@ -217,6 +282,11 @@ class ExamScoringAndParentResultsTest extends TestCase
         $response->assertStatus(201);
         $attempt = ExamAttempt::findOrFail($response->json('data.id'));
         $this->assertCount(3, $attempt->submission_files);
+
+        app(\App\Services\ExamAttemptService::class)->grade($attempt, [
+            'score' => 85,
+            'feedback' => 'إجابة جيدة.',
+        ]);
 
         $this->postJson('/api/exam-attempts', [
             'exam_id' => $exam->id,

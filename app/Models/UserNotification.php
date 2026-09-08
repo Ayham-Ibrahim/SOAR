@@ -15,7 +15,7 @@ class UserNotification extends Model
     protected $primaryKey = null;
 
     protected $fillable = [
-        'notifiable_type', 'notifiable_id', 'title', 'body', 'data',
+        'notifiable_type', 'notifiable_id', 'title', 'body', 'type', 'data',
     ];
 
     protected function casts(): array

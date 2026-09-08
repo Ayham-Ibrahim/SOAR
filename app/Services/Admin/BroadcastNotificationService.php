@@ -123,6 +123,10 @@ class BroadcastNotificationService
             $filters['parent_ids'] = array_values(array_unique(array_map('intval', Arr::wrap($data['parent_ids']))));
         }
 
+        if (in_array(Arr::get($data, 'notification_type'), ['news'], true)) {
+            $filters['notification_type'] = Arr::get($data, 'notification_type');
+        }
+
         return [
             'title' => (string) Arr::get($data, 'title', ''),
             'content' => (string) Arr::get($data, 'content', ''),
