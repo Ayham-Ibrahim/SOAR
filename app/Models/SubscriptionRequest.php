@@ -20,6 +20,8 @@ class SubscriptionRequest extends Model
         'student_id',
         'course_id',
         'offer_id',
+        'payment_method_id',
+        'payment_details',
         'receipt_image',
         'amount',
         'status',
@@ -32,6 +34,7 @@ class SubscriptionRequest extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'payment_details' => 'array',
             'reviewed_at' => 'datetime',
         ];
     }
@@ -49,6 +52,15 @@ class SubscriptionRequest extends Model
     public function offer(): BelongsTo
     {
         return $this->belongsTo(Offer::class);
+    }
+
+    /**
+     * The live method — null once deleted. payment_details keeps the account
+     * details as the student saw them when sending the request.
+     */
+    public function paymentMethod(): BelongsTo
+    {
+        return $this->belongsTo(PaymentMethod::class);
     }
 
     public function reviewer(): BelongsTo

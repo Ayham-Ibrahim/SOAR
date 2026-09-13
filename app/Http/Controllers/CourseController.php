@@ -36,8 +36,8 @@ class CourseController extends Controller
 
     /**
      * Course Details: full curriculum tree (subject, teacher, lessons → unit +
-     * videos/files), plus lessons_count/videos_count/exams_count and
-     * active_subscribers_count. Video/file URLs are hidden unless the
+     * videos/files), plus lessons_count/videos_count/actual_free_videos_count/
+     * exams_count and active_subscribers_count. Video/file URLs are hidden unless the
      * student has paid access (CourseAccess) or the video is marked free —
      * the lesson/video titles themselves stay visible as a catalog preview
      * either way.

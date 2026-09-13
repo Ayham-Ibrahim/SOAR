@@ -10,7 +10,11 @@ class ParentService
 {
     public function list(int $perPage = 15): LengthAwarePaginator
     {
-        return ParentModel::query()->latest()->paginate($perPage);
+        return ParentModel::query()
+            ->with('students:users.id,users.name,users.phone')
+            ->withCount('students')
+            ->latest()
+            ->paginate($perPage);
     }
 
     public function create(array $data): ParentModel

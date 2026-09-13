@@ -116,6 +116,7 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
     ->prefix('admin')
     ->group(function () {
         Route::apiResource('students', StudentController::class);
+        Route::post('students/{student}/reset-session', [StudentController::class, 'resetSession']);
         Route::apiResource('study-types', StudyTypeController::class)->except(['index']);
         Route::apiResource('parents', AdminParentController::class);
         Route::post('parents/{parent}/students', [AdminParentController::class, 'addStudents']);

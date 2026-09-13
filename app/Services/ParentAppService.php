@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ParentModel;
+use App\Models\Exam;
 use App\Models\ExamAttempt;
 use App\Models\Course;
 use App\Models\Subscription;
@@ -133,90 +134,110 @@ class ParentAppService
             ->values();
     }
 
+    /**
+     * The child's academic record grouped by subject (in the subjects' own
+     * order): every course they are or were subscribed to, or sat an exam
+     * in, each with the exams that concern them and their own results.
+     *
+     * An exam concerns the student if they attempted it — kept even if it
+     * was deactivated since, so a result never vanishes — or if it's active
+     * in a course they still have a live subscription to (open to take).
+     * Other students' attempts and unrelated courses are never loaded.
+     */
     public function academicDetailsForStudent(ParentModel $parent, User $student): SupportCollection
     {
         if (! $parent->students()->where('users.id', $student->id)->exists()) {
             return collect();
         }
 
-        $subscriptions = Subscription::query()
-            ->where('student_id', $student->id)
-            ->where('expires_at', '>', now())
-            ->get()
-            ->unique('course_id');
-
-        $attemptedCourseIds = ExamAttempt::query()
+        $attemptedExamIds = ExamAttempt::query()
             ->where('user_id', $student->id)
-            ->whereHas('exam')
-            ->with('exam:id,course_id')
-            ->get()
-            ->pluck('exam.course_id')
-            ->filter()
-            ->unique();
+            ->distinct()
+            ->pluck('exam_id');
 
-        $courseIds = $subscriptions->pluck('course_id')->merge($attemptedCourseIds)->unique();
-
-        $courses = Course::query()
-            ->whereIn('id', $courseIds)
+        return Course::query()
+            ->where(fn ($query) => $query
+                ->whereHas('subscriptions', fn ($subscriptions) => $subscriptions->where('student_id', $student->id))
+                ->orWhereHas('exams', fn ($exams) => $exams->whereIn('exams.id', $attemptedExamIds)))
             ->with([
-                'subject',
+                'subject' => fn ($query) => $query->withTrashed(),
+                'teacher',
                 'subscriptions' => fn ($query) => $query->where('student_id', $student->id),
-                'exams' => function ($query) use ($student) {
-                    $query->with([
-                        'attempts' => fn ($attempts) => $attempts
-                            ->where('user_id', $student->id)
-                            ->latest(),
-                    ]);
-                },
+                'exams' => fn ($query) => $query
+                    ->where(fn ($exams) => $exams->where('is_active', true)->orWhereIn('exams.id', $attemptedExamIds))
+                    ->orderBy('id')
+                    ->with(['attempts' => fn ($attempts) => $attempts->where('user_id', $student->id)->latest()]),
             ])
+            ->orderBy('title')
             ->get()
-            ->keyBy('id');
-
-        return $courses
-            ->groupBy(fn ($course) => $course->subject_id)
-            ->map(function ($subjectSubscriptions) use ($student) {
-                $subject = $subjectSubscriptions->first()->subject;
+            ->groupBy('subject_id')
+            ->sortBy(fn ($courses) => $courses->first()->subject?->order ?? PHP_INT_MAX)
+            ->map(function ($courses) {
+                $subject = $courses->first()->subject;
 
                 return [
                     'subject' => $subject ? [
                         'id' => $subject->id,
                         'name' => $subject->name,
                     ] : null,
-                    'courses' => $subjectSubscriptions->map(function ($course) use ($student) {
-                        $subscription = $course->subscriptions
-                            ->where('student_id', $student->id)
-                            ->sortByDesc('expires_at')
-                            ->first();
-
-                        return [
-                            'id' => $course->id,
-                            'title' => $course->title,
-                            'starts_at' => $subscription?->starts_at?->toDateTimeString(),
-                            'expires_at' => $subscription?->expires_at?->toDateTimeString(),
-                            'exams' => $course->exams->map(function ($exam) {
-                                return [
-                                    'id' => $exam->id,
-                                    'title' => $exam->title,
-                                    'type' => $exam->type,
-                                    'total_score' => $exam->total_score,
-                                    'attempts' => $exam->attempts->map(function ($attempt) {
-                                        return [
-                                            'id' => $attempt->id,
-                                            'status' => $attempt->status,
-                                            'score' => $attempt->score,
-                                            'total_questions' => $attempt->total_questions,
-                                            'correct_answers' => $attempt->correct_answers,
-                                            'submitted_at' => $attempt->created_at?->toDateTimeString(),
-                                            'graded_at' => $attempt->graded_at?->toDateTimeString(),
-                                            'feedback' => $attempt->feedback,
-                                        ];
-                                    })->values()->all(),
-                                ];
-                            })->values()->all() ?? [],
-                        ];
-                    })->values()->all(),
+                    'courses' => $courses->map(fn (Course $course) => $this->academicCourse($course))->values()->all(),
                 ];
             })
             ->values();
+    }
+
+    private function academicCourse(Course $course): array
+    {
+        $subscription = $course->subscriptions->sortByDesc('expires_at')->first();
+        $hasAccess = (bool) $subscription?->expires_at?->isFuture();
+
+        return [
+            'id' => $course->id,
+            'title' => $course->title,
+            'teacher_name' => $course->teacher?->name,
+            'starts_at' => $subscription?->starts_at?->toDateTimeString(),
+            'expires_at' => $subscription?->expires_at?->toDateTimeString(),
+            'is_subscription_active' => $hasAccess,
+            'exams' => $course->exams
+                ->filter(fn (Exam $exam) => $exam->attempts->isNotEmpty() || $hasAccess)
+                ->map(fn (Exam $exam) => [
+                    'id' => $exam->id,
+                    'title' => $exam->title,
+                    'type' => $exam->type,
+                    'description' => $exam->description,
+                    'duration_minutes' => $exam->duration_minutes,
+                    'total_score' => $exam->total_score,
+                    'passing_score' => $exam->passing_score,
+                    'attempts' => $exam->attempts->map(fn (ExamAttempt $attempt) => [
+                        'id' => $attempt->id,
+                        'status' => $attempt->status,
+                        'score' => $attempt->score,
+                        'passed' => $this->hasPassed($exam, $attempt),
+                        'total_questions' => $attempt->total_questions,
+                        'correct_answers' => $attempt->correct_answers,
+                        'earned_points' => $attempt->earned_points,
+                        'total_points' => $attempt->total_points,
+                        'time_spent_seconds' => $attempt->time_spent_seconds,
+                        'submitted_at' => $attempt->created_at?->toDateTimeString(),
+                        'graded_at' => $attempt->graded_at?->toDateTimeString(),
+                        'feedback' => $attempt->feedback,
+                    ])->values()->all(),
+                ])
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /**
+     * Null while a written exam awaits review, or when the exam has no
+     * passing score set. score is already on the exam's total_score scale.
+     */
+    private function hasPassed(Exam $exam, ExamAttempt $attempt): ?bool
+    {
+        if ($attempt->status !== 'graded' || $attempt->score === null || $exam->passing_score === null) {
+            return null;
+        }
+
+        return (float) $attempt->score >= $exam->passing_score;
     }
 }

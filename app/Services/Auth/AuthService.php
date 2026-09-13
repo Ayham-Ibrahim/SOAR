@@ -14,6 +14,11 @@ use Illuminate\Support\Facades\Log;
 
 class AuthService
 {
+    /** Returned in errors.code so the app can show the "contact the admin to switch device" screen. */
+    public const SESSION_ACTIVE = 'session_active';
+
+    public const LOGOUT_NOT_ALLOWED = 'logout_not_allowed';
+
     public function __construct(private readonly OTPService $otpService)
     {
     }
@@ -115,7 +120,15 @@ class AuthService
 
             $user->update(['phone_verified_at' => Carbon::now()]);
 
-            [$accessToken, $refreshToken] = $this->issueTokens($user);
+            $tokens = $this->issueTokens($user);
+
+            if (! $tokens) {
+                DB::rollBack();
+
+                return $this->sessionActiveError();
+            }
+
+            [$accessToken, $refreshToken] = $tokens;
 
             DB::commit();
 
@@ -152,6 +165,12 @@ class AuthService
                 'success' => false,
                 'message' => 'بيانات الدخول غير صحيحة',
             ];
+        }
+
+        // Before the device is registered or an OTP is sent, so a blocked
+        // attempt leaves nothing behind on the account.
+        if ($this->isLockedStudent($account)) {
+            return $this->sessionActiveError();
         }
 
         if ($credentials['fcm_token'] ?? false) {
@@ -191,7 +210,13 @@ class AuthService
             }
         }
 
-        [$accessToken, $refreshToken] = $this->issueTokens($account);
+        $tokens = $this->issueTokens($account);
+
+        if (! $tokens) {
+            return $this->sessionActiveError();
+        }
+
+        [$accessToken, $refreshToken] = $tokens;
 
         return [
             'success' => true,
@@ -222,6 +247,12 @@ class AuthService
                 ];
             }
 
+            if ($this->isLockedStudent($account)) {
+                DB::rollBack();
+
+                return $this->sessionActiveError();
+            }
+
             $verification = $this->otpService->verifyOTP($data['phone'], $data['otp_code'], 'register');
 
             if (! $verification['success']) {
@@ -230,7 +261,15 @@ class AuthService
 
             $account->update(['phone_verified_at' => Carbon::now()]);
 
-            [$accessToken, $refreshToken] = $this->issueTokens($account);
+            $tokens = $this->issueTokens($account);
+
+            if (! $tokens) {
+                DB::rollBack();
+
+                return $this->sessionActiveError();
+            }
+
+            [$accessToken, $refreshToken] = $tokens;
 
             DB::commit();
 
@@ -263,13 +302,23 @@ class AuthService
         /** @var User|ParentModel $account */
         $account = Auth::user();
 
+        // Revoking a student's token would free the account for a login from
+        // any other device — only an admin session reset may do that.
+        if ($account instanceof User && ! $account->is_admin) {
+            return [
+                'success' => false,
+                'message' => 'لا يمكن تسجيل الخروج من حساب الطالب. لتغيير الجهاز يرجى التواصل مع الإدارة',
+                'errors' => ['code' => self::LOGOUT_NOT_ALLOWED],
+            ];
+        }
+
         if ($data['fcm_token'] ?? false) {
             Device::removeByToken($account, $data['fcm_token']);
         }
 
         $account->currentAccessToken()->delete();
 
-        return ['message' => 'تم تسجيل الخروج بنجاح'];
+        return ['success' => true, 'message' => 'تم تسجيل الخروج بنجاح'];
     }
 
     public function updateProfile(User $account, array $data): User
@@ -419,17 +468,47 @@ class AuthService
     }
 
     /**
-    * Issue access and refresh tokens valid for six years.
+     * Issue access and refresh tokens valid for six years, replacing any
+     * previous ones. Returns null for a student who already holds a live
+     * session — re-checked under a row lock so two simultaneous logins
+     * can't both get through.
      *
-     * @return array{0: string, 1: string}
+     * @return array{0: string, 1: string}|null
      */
-    private function issueTokens(User|ParentModel $account): array
+    private function issueTokens(User|ParentModel $account): ?array
     {
-        $account->tokens()->delete();
+        return DB::transaction(function () use ($account) {
+            $account->newQuery()->whereKey($account->getKey())->lockForUpdate()->first();
 
-        $accessToken = $account->createToken('mobile-access', ['access-api'], now()->addYears(6))->plainTextToken;
-        $refreshToken = $account->createToken('mobile-refresh', ['refresh-token'], now()->addYears(6))->plainTextToken;
+            if ($this->isLockedStudent($account)) {
+                return null;
+            }
 
-        return [$accessToken, $refreshToken];
+            $account->tokens()->delete();
+
+            $accessToken = $account->createToken('mobile-access', ['access-api'], now()->addYears(6))->plainTextToken;
+            $refreshToken = $account->createToken('mobile-refresh', ['refresh-token'], now()->addYears(6))->plainTextToken;
+
+            return [$accessToken, $refreshToken];
+        });
+    }
+
+    /**
+     * A student account is bound to the device holding its session; a new
+     * one can't be opened until an admin resets it (admin/students/{id}/reset-session).
+     */
+    private function isLockedStudent(User|ParentModel $account): bool
+    {
+        return $account instanceof User && ! $account->is_admin && $account->hasActiveSession();
+    }
+
+    private function sessionActiveError(): array
+    {
+        return [
+            'success' => false,
+            'status' => 403,
+            'message' => 'هذا الحساب مسجل الدخول على جهاز آخر. لتسجيل الدخول من جهاز جديد يرجى التواصل مع الإدارة',
+            'errors' => ['code' => self::SESSION_ACTIVE],
+        ];
     }
 }

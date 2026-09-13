@@ -16,7 +16,7 @@ class SubscriptionRequestService
     public function list(?string $status = null, int $perPage = 15): LengthAwarePaginator
     {
         return SubscriptionRequest::query()
-            ->with(['student', 'course', 'offer'])
+            ->with(['student', 'course', 'offer', 'paymentMethod'])
             ->when($status, fn ($query) => $query->where('status', $status))
             ->latest()
             ->paginate($perPage);

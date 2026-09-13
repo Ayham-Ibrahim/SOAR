@@ -23,7 +23,7 @@ class PaymentMethodService
                 ? FileStorage::storeFile($data['qr_code'], 'payment-methods', 'img')
                 : null,
             'location' => $data['location'] ?? null,
-            'is_active' => $data['is_active'] ?? null,
+            'is_active' => $data['is_active'] ?? true,
         ]);
     }
 
@@ -55,9 +55,7 @@ class PaymentMethodService
     public function activeList(int $perPage = 15): LengthAwarePaginator
     {
         return PaymentMethod::query()
-            ->where(function ($query) {
-                $query->where('is_active', true)->orWhereNull('is_active');
-            })
+            ->where('is_active', true)
             ->latest()
             ->paginate($perPage);
     }

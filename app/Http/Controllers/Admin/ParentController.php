@@ -32,6 +32,8 @@ class ParentController extends Controller
 
     public function show(ParentModel $parent)
     {
+        $parent->load('students:users.id,users.name,users.phone')->loadCount('students');
+
         return $this->success($parent, 'تم جلب بيانات ولي الأمر بنجاح');
     }
 

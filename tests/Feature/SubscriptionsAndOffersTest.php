@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Course;
 use App\Models\Offer;
+use App\Models\PaymentMethod;
 use App\Models\Subject;
 use App\Models\SubCategory;
 use App\Models\Teacher;
@@ -50,6 +51,15 @@ class SubscriptionsAndOffersTest extends TestCase
         return User::factory()->create(['is_admin' => true]);
     }
 
+    private function paymentMethod(): PaymentMethod
+    {
+        return PaymentMethod::create([
+            'option_name' => 'Sham Cash',
+            'person_name' => 'Ahmad',
+            'person_phone' => '0999999999',
+        ]);
+    }
+
     public function test_direct_subscription_grants_access_until_expiry(): void
     {
         $course = $this->course();
@@ -59,6 +69,7 @@ class SubscriptionsAndOffersTest extends TestCase
         $store = $this->postJson('/api/subscription-requests', [
             'course_id' => $course->id,
             'receipt_image' => UploadedFile::fake()->image('receipt.jpg'),
+            'payment_method_id' => $this->paymentMethod()->id,
         ]);
         $store->assertStatus(201);
         $requestId = $store->json('data.id');
@@ -103,6 +114,7 @@ class SubscriptionsAndOffersTest extends TestCase
         $store = $this->postJson('/api/offer-subscription-requests', [
             'offer_id' => $offer->id,
             'receipt_image' => UploadedFile::fake()->image('receipt.jpg'),
+            'payment_method_id' => $this->paymentMethod()->id,
         ]);
         $store->assertStatus(201);
         $requestId = $store->json('data.id');
@@ -141,6 +153,7 @@ class SubscriptionsAndOffersTest extends TestCase
         $response = $this->postJson('/api/offer-subscription-requests', [
             'offer_id' => $offer->id,
             'receipt_image' => UploadedFile::fake()->image('receipt.jpg'),
+            'payment_method_id' => $this->paymentMethod()->id,
         ]);
 
         $response->assertStatus(422);
@@ -155,6 +168,7 @@ class SubscriptionsAndOffersTest extends TestCase
         $store = $this->postJson('/api/subscription-requests', [
             'course_id' => $course->id,
             'receipt_image' => UploadedFile::fake()->image('receipt.jpg'),
+            'payment_method_id' => $this->paymentMethod()->id,
         ]);
         $requestId = $store->json('data.id');
 

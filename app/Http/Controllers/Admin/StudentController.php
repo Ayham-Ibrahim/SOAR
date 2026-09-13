@@ -34,10 +34,17 @@ class StudentController extends Controller
 
     public function show(User $student)
     {
-        return $this->success(
-            $student->load(['subCategory', 'governorate', 'school', 'category', 'studyType']),
-            'تم جلب بيانات الطالب بنجاح'
-        );
+        $student->load(['subCategory', 'governorate', 'school', 'category', 'studyType']);
+        $student->setAttribute('has_active_session', $student->hasActiveSession());
+
+        return $this->success($student, 'تم جلب بيانات الطالب بنجاح');
+    }
+
+    public function resetSession(User $student)
+    {
+        $this->studentService->resetSession($student);
+
+        return $this->success([], 'تم إنهاء جلسة الطالب، ويمكنه الآن تسجيل الدخول من جهاز جديد');
     }
 
     public function update(UpdateStudentRequest $request, User $student)

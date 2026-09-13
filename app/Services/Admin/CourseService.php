@@ -60,19 +60,26 @@ class CourseService
     }
 
     /**
-     * Appends lessons_count, videos_count, exams_count, and
-     * active_subscribers_count (distinct students with a non-expired
-     * subscription — matches App\Services\CourseAccess's own definition of
-     * "subscribed") to the course.
+     * Appends lessons_count, videos_count (every video, free ones included),
+     * actual_free_videos_count, exams_count, and active_subscribers_count
+     * (distinct students with a non-expired subscription — matches
+     * App\Services\CourseAccess's own definition of "subscribed") to the course.
+     *
+     * actual_free_videos_count counts videos flagged is_free — the same flag
+     * that unlocks a video without a subscription (CourseController::show).
+     * It is not the admin-entered free_videos_count column, which nothing
+     * keeps in sync with the real videos.
      */
     public function withStats(Course $course): Course
     {
         $course->loadCount(['lessons', 'exams']);
 
-        $course->videos_count = Video::query()
+        $videos = Video::query()
             ->whereHas('lesson.courses', fn ($query) => $query->where('courses.id', $course->id))
-            ->distinct()
-            ->count('id');
+            ->distinct();
+
+        $course->videos_count = (clone $videos)->count('id');
+        $course->actual_free_videos_count = (clone $videos)->where('is_free', true)->count('id');
 
         $course->active_subscribers_count = $course->subscriptions()
             ->where('expires_at', '>', now())

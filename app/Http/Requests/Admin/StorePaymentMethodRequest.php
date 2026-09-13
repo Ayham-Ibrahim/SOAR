@@ -19,11 +19,11 @@ class StorePaymentMethodRequest extends FormRequest
     {
         return [
             'option_name' => ['required', 'string', 'max:255'],
-            'person_name' => ['nullable', 'string', 'max:255'],
-            'person_phone' => ['nullable', 'string', 'max:50'],
+            'person_name' => ['required', 'string', 'max:255'],
+            'person_phone' => ['required', 'string', 'max:50'],
             'qr_code' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:4096'],
             'location' => ['nullable', 'string', 'max:255'],
-            'is_active' => ['required', 'boolean'],
+            'is_active' => ['sometimes', 'boolean'], // defaults to active
         ];
     }
 

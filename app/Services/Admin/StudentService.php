@@ -60,6 +60,17 @@ class StudentService
         return $student->fresh();
     }
 
+    /**
+     * Release the student's single-session lock (new phone, wiped app data)
+     * so they can log in again. Ends the current session and drops its push
+     * registrations so notifications stop reaching the old device.
+     */
+    public function resetSession(User $student): void
+    {
+        $student->tokens()->delete();
+        $student->devices()->delete();
+    }
+
     public function delete(User $student): void
     {
         $student->tokens()->delete();

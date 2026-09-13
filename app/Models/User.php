@@ -74,6 +74,17 @@ class User extends Authenticatable
     }
 
     /**
+     * Any unexpired token means the account is still signed in on the
+     * device it was bound to — a student may hold only one such session.
+     */
+    public function hasActiveSession(): bool
+    {
+        return $this->tokens()
+            ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->exists();
+    }
+
+    /**
      * Informational only (reports/statistics) — never used to gate or filter
      * content. The platform is open: every student can browse everything.
      */

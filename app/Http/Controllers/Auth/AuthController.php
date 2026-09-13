@@ -43,7 +43,7 @@ class AuthController extends Controller
         $result = $this->authService->confirmRegistration($request->validated());
 
         if (! $result['success']) {
-            return $this->error($result['message'], 400);
+            return $this->error($result['message'], $result['status'] ?? 400, $result['errors'] ?? null);
         }
 
         return $this->success($result['data'], 'Registration confirmed successfully');
@@ -54,7 +54,7 @@ class AuthController extends Controller
         $result = $this->authService->login($request->validated());
 
         if (! $result['success']) {
-            return $this->error($result['message'], 401);
+            return $this->error($result['message'], $result['status'] ?? 401, $result['errors'] ?? null);
         }
 
         if ($result['otp_required'] ?? false) {
@@ -74,7 +74,7 @@ class AuthController extends Controller
         $result = $this->authService->confirmLogin($request->validated());
 
         if (! $result['success']) {
-            return $this->error($result['message'], 400);
+            return $this->error($result['message'], $result['status'] ?? 400, $result['errors'] ?? null);
         }
 
         return $this->success($result['data'], 'Login confirmed successfully');
@@ -84,7 +84,11 @@ class AuthController extends Controller
     {
         $result = $this->authService->logout($request->validated());
 
-        return $this->success($result, 'Logout success');
+        if (! $result['success']) {
+            return $this->error($result['message'], 403, $result['errors']);
+        }
+
+        return $this->success(['message' => $result['message']], 'Logout success');
     }
 
     public function profile(UpdateProfileRequest $request)
