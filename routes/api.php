@@ -69,21 +69,23 @@ Route::apiResource('categories', CategoryController::class)->only(['index']);
 Route::apiResource('study-types', StudyTypeController::class)->only(['index']);
 Route::apiResource('sub-categories', SubCategoryController::class)->only(['index']);
 Route::apiResource('schools', SchoolController::class)->only(['index', 'show']);
+
+// Public catalog: guests can browse the same catalog and free course content
+// as students. Subscription and student-specific actions remain protected below.
+Route::apiResource('categories', CategoryController::class)->only(['show']);
+Route::apiResource('sub-categories', SubCategoryController::class)->only(['show']);
+Route::apiResource('subjects', SubjectController::class)->only(['index', 'show']);
+Route::apiResource('courses', CourseController::class)->only(['index', 'show']);
+Route::apiResource('news', NewsController::class)->only(['index', 'show']);
+Route::apiResource('exams', ExamController::class)->only(['index', 'show']);
+Route::apiResource('advertisements', AdvertisementController::class)->only(['show']);
+Route::get('advertisements', [AdvertisementController::class, 'getAdsUser']);
+Route::apiResource('offers', OfferController::class)->only(['index', 'show']);
+Route::get('payment-methods', [PaymentMethodController::class, 'index']);
+Route::get('teachers', [TeacherController::class, 'activeIndex']);
+Route::get('settings/payment-info', [SettingController::class, 'paymentInfo']);
+
 Route::middleware('auth:sanctum')->group(function () {
-    // Reference data & content tree: readable by ANY authenticated user, with
-    // NO filtering by student attribute. The platform is open — every student
-    // can browse every category/sub-category/subject/course.
-    Route::apiResource('categories', CategoryController::class)->only(['show']);
-    Route::apiResource('sub-categories', SubCategoryController::class)->only(['show']);
-    Route::apiResource('subjects', SubjectController::class)->only(['index', 'show']);
-    Route::apiResource('courses', CourseController::class)->only(['index', 'show']);
-    Route::apiResource('news', NewsController::class)->only(['index', 'show']);
-    Route::apiResource('exams', ExamController::class)->only(['index', 'show']);
-    Route::apiResource('advertisements', AdvertisementController::class)->only(['show']);
-    Route::get('advertisements', [AdvertisementController::class,'getAdsUser']);
-    Route::apiResource('offers', OfferController::class)->only(['index', 'show']);
-    Route::get('payment-methods', [PaymentMethodController::class, 'index']);
-    Route::get('teachers', [TeacherController::class, 'activeIndex']);
 
     // Exam taking & results: scoped to the authenticated student.
     Route::apiResource('exam-attempts', ExamAttemptController::class)->only(['index', 'store', 'show']);
@@ -97,7 +99,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('subscription-requests', SubscriptionRequestController::class)->only(['index', 'store', 'show']);
     Route::post('offer-subscription-requests', [SubscriptionRequestController::class, 'storeOffer']);
 
-    Route::get('settings/payment-info', [SettingController::class, 'paymentInfo']);
 });
 
 Route::middleware(['auth:sanctum', 'parent'])->prefix('parent')->group(function () {

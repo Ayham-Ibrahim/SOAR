@@ -14,8 +14,12 @@ use App\Models\User;
  */
 class CourseAccess
 {
-    public function hasAccess(User $student, Course $course): bool
+    public function hasAccess(?User $student, Course $course): bool
     {
+        if ($student === null) {
+            return false;
+        }
+
         if ($student->is_admin) {
             return true;
         }
