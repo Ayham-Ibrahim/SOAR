@@ -84,6 +84,7 @@ Route::apiResource('offers', OfferController::class)->only(['index', 'show']);
 Route::get('payment-methods', [PaymentMethodController::class, 'index']);
 Route::get('teachers', [TeacherController::class, 'activeIndex']);
 Route::get('settings/payment-info', [SettingController::class, 'paymentInfo']);
+Route::get('settings/social-links', [SettingController::class, 'socialLinks']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -151,6 +152,7 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
         Route::post('subscription-requests/{subscription_request}/approve', [AdminSubscriptionRequestController::class, 'approve']);
         Route::post('subscription-requests/{subscription_request}/reject', [AdminSubscriptionRequestController::class, 'reject']);
 
+        Route::put('settings/social-links', [AdminSettingController::class, 'updateSocialLinks']);
         Route::apiResource('settings', AdminSettingController::class)
             ->parameters(['settings' => 'key'])
             ->only(['index', 'show', 'update']);

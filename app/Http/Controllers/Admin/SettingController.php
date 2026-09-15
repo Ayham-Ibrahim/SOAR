@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateSocialLinksRequest;
 use App\Http\Requests\Admin\UpdateSettingRequest;
 use App\Models\Setting;
 use App\Services\Admin\SettingService;
@@ -33,5 +34,13 @@ class SettingController extends Controller
         $setting = $this->settingService->update($key, $request->validated('value'));
 
         return $this->success($setting, 'تم تحديث الإعداد بنجاح');
+    }
+
+    public function updateSocialLinks(UpdateSocialLinksRequest $request)
+    {
+        $links = $request->validated();
+        $setting = $this->settingService->update('social_links', json_encode($links, JSON_UNESCAPED_SLASHES));
+
+        return $this->success($links, 'تم تحديث روابط التواصل الاجتماعي بنجاح');
     }
 }

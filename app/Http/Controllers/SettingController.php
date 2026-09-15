@@ -17,4 +17,11 @@ class SettingController extends Controller
 
         return $this->success($value ? json_decode($value, true) : null, 'تم جلب معلومات الدفع بنجاح');
     }
+
+    public function socialLinks()
+    {
+        $value = Setting::get('social_links');
+
+        return $this->success($value ? json_decode($value, true) : [], 'تم جلب روابط التواصل الاجتماعي بنجاح');
+    }
 }
