@@ -65,7 +65,7 @@ class SubscriptionRequestService
     {
         return SubscriptionRequest::query()
             ->where('student_id', $student->id)
-            ->with(['course', 'offer'])
+            ->with(['course', 'offer', 'subscriptions'])
             ->latest()
             ->paginate($perPage);
     }
@@ -74,7 +74,7 @@ class SubscriptionRequestService
     {
         return SubscriptionRequest::query()
             ->where('student_id', $student->id)
-            ->with(['course', 'offer'])
+            ->with(['course', 'offer', 'subscriptions'])
             ->findOrFail($id);
     }
 }

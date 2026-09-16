@@ -7,10 +7,10 @@ use App\Models\User;
 
 /**
  * The ONE access gate for paid course content. A student has access to a
- * course iff a subscriptions row exists for (student_id, course_id) with
- * expires_at > now() — that comparison is authoritative everywhere; the
- * subscriptions.is_active flag is a nightly-refreshed reporting field only,
- * never used here.
+ * course iff a live subscriptions row exists for (student_id, course_id) —
+ * not revoked by an admin and expires_at > now() (Subscription::scopeActive).
+ * That definition is authoritative everywhere; the subscriptions.is_active
+ * flag is a nightly-refreshed reporting field only, never used here.
  */
 class CourseAccess
 {
@@ -26,7 +26,7 @@ class CourseAccess
 
         return $student->subscriptions()
             ->where('course_id', $course->id)
-            ->where('expires_at', '>', now())
+            ->active()
             ->exists();
     }
 }

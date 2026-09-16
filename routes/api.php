@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\StudyTypeController;
+use App\Http\Controllers\Admin\SubscriptionController as AdminSubscriptionController;
 use App\Http\Controllers\Admin\SubscriptionRequestController as AdminSubscriptionRequestController;
 use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\UnitController;
@@ -151,6 +152,12 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])
             ->only(['index', 'show']);
         Route::post('subscription-requests/{subscription_request}/approve', [AdminSubscriptionRequestController::class, 'approve']);
         Route::post('subscription-requests/{subscription_request}/reject', [AdminSubscriptionRequestController::class, 'reject']);
+
+        // Granted subscriptions: a revoked one keeps its row (status "revoked") for audit.
+        Route::get('students/{student}/subscriptions', [AdminSubscriptionController::class, 'forStudent']);
+        Route::get('offers/{offer}/students', [AdminSubscriptionController::class, 'offerSubscribers']);
+        Route::post('courses/{course}/students/{student}/revoke', [AdminSubscriptionController::class, 'revokeCourse']);
+        Route::post('offers/{offer}/students/{student}/revoke', [AdminSubscriptionController::class, 'revokeOffer']);
 
         Route::put('settings/social-links', [AdminSettingController::class, 'updateSocialLinks']);
         Route::apiResource('settings', AdminSettingController::class)

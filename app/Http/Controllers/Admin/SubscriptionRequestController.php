@@ -33,6 +33,7 @@ class SubscriptionRequestController extends Controller
                 'course.teacher',
                 'offer.courses.teacher',
                 'paymentMethod',
+                'subscriptions.revoker:id,name',
                 'reviewer:id,name',
             ]),
             'تم جلب تفاصيل الطلب بنجاح'

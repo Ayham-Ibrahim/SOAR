@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Rules\YouTubeUrl;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -20,7 +21,10 @@ class UpdateVideoRequest extends FormRequest
         return [
             'lesson_id' => ['sometimes', 'integer', 'exists:lessons,id'],
             'title' => ['sometimes', 'string', 'max:255'],
-            'video' => ['nullable', 'file', 'mimes:mp4,webm,ogg,mov,wmv', 'max:3145728'],
+            'youtube_url' => ['sometimes', 'string', new YouTubeUrl],
+            'video' => config('video.uploads_enabled')
+                ? ['nullable', 'file', 'mimes:mp4,webm,ogg,mov,wmv', 'max:3145728']
+                : ['prohibited'],
             'thumbnail' => ['nullable', 'image', 'max:4096'],
             'duration_seconds' => ['nullable', 'integer', 'min:0'],
             'order' => ['nullable', 'integer', 'min:0'],
@@ -39,6 +43,7 @@ class UpdateVideoRequest extends FormRequest
             'exists' => 'القيمة المحددة لحقل :attribute غير موجودة.',
             'file' => 'حقل :attribute يجب أن يكون ملفاً.',
             'mimes' => 'حقل :attribute يجب أن يكون ملف فيديو من نوع: :values.',
+            'video.prohibited' => 'رفع ملفات الفيديو متوقف حالياً. يرجى رفع الفيديو على يوتيوب وإضافة الرابط.',
             'image' => 'حقل :attribute يجب أن يكون صورة.',
             'boolean' => 'حقل :attribute يجب أن يكون صحيح أو خاطئ.',
             'max' => 'حقل :attribute أكبر من الحد المسموح به.',
@@ -52,6 +57,7 @@ class UpdateVideoRequest extends FormRequest
             'lesson_id' => 'الدرس',
             'title' => 'عنوان الفيديو',
             'video' => 'ملف الفيديو',
+            'youtube_url' => 'رابط اليوتيوب',
             'thumbnail' => 'الصورة المصغّرة',
             'duration_seconds' => 'المدة (بالثواني)',
             'order' => 'الترتيب',

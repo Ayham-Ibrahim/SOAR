@@ -17,8 +17,9 @@ use Illuminate\Support\Facades\Log;
  */
 class FcmService
 {
-    protected string $firebaseProjectId;
-    protected string $credentialsPath;
+    protected ?string $firebaseProjectId = null;
+
+    protected ?string $credentialsPath = null;
 
     /**
      * Initialize Firebase configuration.
@@ -41,6 +42,14 @@ class FcmService
     public function sendToToken(string $token, string $title, string $body, array $data = []): bool
     {
         $this->initConfig();
+
+        // Unconfigured is not an error the caller should blow up on: the
+        // notification is already stored for the in-app inbox either way.
+        if (! $this->firebaseProjectId) {
+            Log::warning('FCM project id is not configured; skipping push');
+
+            return false;
+        }
 
         if (! is_file($this->credentialsPath)) {
             Log::warning('FCM credentials file not found', ['path' => $this->credentialsPath]);

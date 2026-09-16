@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Rules\YouTubeUrl;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -17,10 +18,17 @@ class StoreVideoRequest extends FormRequest
      */
     public function rules(): array
     {
+        $uploadsEnabled = (bool) config('video.uploads_enabled');
+
         return [
             'lesson_id' => ['required', 'integer', 'exists:lessons,id'],
             'title' => ['required', 'string', 'max:255'],
-            'video' => ['required', 'file', 'mimes:mp4,webm,ogg,mov,wmv', 'max:3145728'],
+            // Videos come from YouTube now; the file rules stay for the day
+            // uploads are switched back on (config/video.php).
+            'youtube_url' => [$uploadsEnabled ? 'required_without:video' : 'required', 'string', new YouTubeUrl],
+            'video' => $uploadsEnabled
+                ? ['required_without:youtube_url', 'file', 'mimes:mp4,webm,ogg,mov,wmv', 'max:3145728']
+                : ['prohibited'],
             'thumbnail' => ['nullable', 'image', 'max:4096'],
             'duration_seconds' => ['nullable', 'integer', 'min:0'],
             'order' => ['nullable', 'integer', 'min:0'],
@@ -39,6 +47,8 @@ class StoreVideoRequest extends FormRequest
             'exists' => 'القيمة المحددة لحقل :attribute غير موجودة.',
             'file' => 'حقل :attribute يجب أن يكون ملفاً.',
             'mimes' => 'حقل :attribute يجب أن يكون ملف فيديو من نوع: :values.',
+            'video.prohibited' => 'رفع ملفات الفيديو متوقف حالياً. يرجى رفع الفيديو على يوتيوب وإضافة الرابط.',
+            'required_without' => 'حقل :attribute مطلوب عندما لا يتوفر الحقل الآخر.',
             'image' => 'حقل :attribute يجب أن يكون صورة.',
             'boolean' => 'حقل :attribute يجب أن يكون صحيح أو خاطئ.',
             'max' => 'حقل :attribute أكبر من الحد المسموح به.',
@@ -52,6 +62,7 @@ class StoreVideoRequest extends FormRequest
             'lesson_id' => 'الدرس',
             'title' => 'عنوان الفيديو',
             'video' => 'ملف الفيديو',
+            'youtube_url' => 'رابط اليوتيوب',
             'thumbnail' => 'الصورة المصغّرة',
             'duration_seconds' => 'المدة (بالثواني)',
             'order' => 'الترتيب',

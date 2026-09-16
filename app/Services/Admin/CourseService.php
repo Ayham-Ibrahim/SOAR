@@ -62,7 +62,7 @@ class CourseService
     /**
      * Appends lessons_count, videos_count (every video, free ones included),
      * actual_free_videos_count, exams_count, and active_subscribers_count
-     * (distinct students with a non-expired subscription — matches
+     * (distinct students with a live subscription — matches
      * App\Services\CourseAccess's own definition of "subscribed") to the course.
      *
      * actual_free_videos_count counts videos flagged is_free — the same flag
@@ -82,7 +82,7 @@ class CourseService
         $course->actual_free_videos_count = (clone $videos)->where('is_free', true)->count('id');
 
         $course->active_subscribers_count = $course->subscriptions()
-            ->where('expires_at', '>', now())
+            ->active()
             ->distinct()
             ->count('student_id');
 
@@ -90,7 +90,7 @@ class CourseService
     }
 
     /**
-     * Students with an active (non-expired) subscription to this course —
+     * Students with a live (non-expired, non-revoked) subscription to this course —
      * one row per student even if they have more than one subscription row
      * for it (e.g. renewed, or granted via both a direct purchase and an
      * offer).
@@ -100,7 +100,7 @@ class CourseService
         return User::query()
             ->select(['id', 'name', 'phone', 'avatar'])
             ->whereHas('subscriptions', function ($query) use ($course) {
-                $query->where('course_id', $course->id)->where('expires_at', '>', now());
+                $query->where('course_id', $course->id)->active();
             })
             ->paginate($perPage);
     }

@@ -1,0 +1,976 @@
+{
+  "info": {
+    "name": "SOAR - Backend Updates (Sprint 2)",
+    "description": "توثيق كامل لكل ما أُصلح وأُضيف في هذه الدفعة، مرتّباً حسب الـ Epic.\n\n## التشغيل السريع\n1. اضبط المتغير `base_url` (افتراضياً `http://localhost/api`).\n2. اضبط `admin_phone` و `student_phone` و `parent_phone` و `password` بحسابات حقيقية على بيئتك.\n3. نفّذ مجلد `01 - المصادقة` أولاً. التوكنات تُحفظ تلقائياً في متغيرات المجموعة (`admin_token` / `student_token` / `parent_token`).\n4. كل مجلد بعدها مستقل، ومعظم الطلبات تحفظ الـ id الذي تحتاجه الطلبات التالية.\n\n## متطلبات على السيرفر قبل الاختبار\n- `php artisan migrate` (هناك migrations جديدة: طرق الدفع، سحب الاشتراك، مصدر الفيديو).\n- **worker للـ queue يعمل**: `php artisan queue:work`. بدونه لا تُرسل إشعارات البث إطلاقاً (تبقى في جدول jobs بحالة pending).\n- `VIDEO_UPLOADS_ENABLED=false` (الافتراضي): رفع ملفات الفيديو متوقف، والإضافة تتم برابط يوتيوب.\n\n## تنبيه مهم أثناء الاختبار\nحساب الطالب صار مقيّداً بجلسة واحدة (SP2-07). تسجيل الدخول مرة ثانية بنفس حساب الطالب يُرفض بـ 403 ورمز `session_active`. لفك القفل نفّذ `إنهاء جلسة الطالب (Admin)` في المجلد 02، ثم أعد تسجيل الدخول.\n\n## شكل الردود الموحّد\n- نجاح: `{ status, message, data }`\n- نجاح مع ترقيم: `{ status, message, data: [...], meta: { current_page, per_page, total, last_page } }`\n- خطأ: `{ status: \"error\", message, errors? }`\n- خطأ تحقق (422): `{ message, errors: { field: [\"...\"] } }`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost/api", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "admin_token", "value": "", "type": "string" },
+    { "key": "student_token", "value": "", "type": "string" },
+    { "key": "parent_token", "value": "", "type": "string" },
+    { "key": "admin_phone", "value": "0999999999", "type": "string" },
+    { "key": "student_phone", "value": "0988888888", "type": "string" },
+    { "key": "parent_phone", "value": "0977777777", "type": "string" },
+    { "key": "password", "value": "password", "type": "string" },
+    { "key": "student_id", "value": "1", "type": "string" },
+    { "key": "parent_id", "value": "1", "type": "string" },
+    { "key": "course_id", "value": "1", "type": "string" },
+    { "key": "offer_id", "value": "1", "type": "string" },
+    { "key": "lesson_id", "value": "1", "type": "string" },
+    { "key": "video_id", "value": "1", "type": "string" },
+    { "key": "payment_method_id", "value": "1", "type": "string" },
+    { "key": "subscription_request_id", "value": "1", "type": "string" },
+    { "key": "notification_id", "value": "1", "type": "string" },
+    { "key": "exam_attempt_id", "value": "1", "type": "string" },
+    { "key": "sub_category_id", "value": "1", "type": "string" },
+    { "key": "study_type_id", "value": "1", "type": "string" },
+    { "key": "youtube_url", "value": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "type": "string" },
+    { "key": "per_page", "value": "15", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "01 - المصادقة",
+      "description": "نفّذ هذه الطلبات أولاً. كل طلب يحفظ التوكن في متغير خاص به، فتستطيع استخدام الأدمن والطالب وولي الأمر في نفس الجلسة دون إعادة تسجيل دخول.",
+      "item": [
+        {
+          "name": "تسجيل دخول الأدمن",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"{{admin_phone}}\",\n  \"password\": \"{{password}}\",\n  \"type\": \"user\"\n}" },
+            "url": "{{base_url}}/auth/login",
+            "description": "حساب الأدمن غير مقيّد بجلسة واحدة، ويحصل على توكن بصلاحية `dashboard`."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('تسجيل دخول الأدمن ناجح', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+            "const json = pm.response.json();",
+            "if (json?.data?.access_token) {",
+            "  pm.collectionVariables.set('admin_token', json.data.access_token);",
+            "  pm.collectionVariables.set('token', json.data.access_token);",
+            "}"
+          ] } }]
+        },
+        {
+          "name": "تسجيل دخول الطالب",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"{{student_phone}}\",\n  \"password\": \"{{password}}\",\n  \"type\": \"user\",\n  \"fcm_token\": \"\"\n}" },
+            "url": "{{base_url}}/auth/login",
+            "description": "**SP2-07:** إذا كان الحساب مسجّل الدخول على جهاز آخر، يُرفض الطلب بـ 403 مع `errors.code = session_active`. أنهِ الجلسة من المجلد 02 ثم أعد المحاولة.\n\n`fcm_token` اختياري ويُستخدم لتسجيل جهاز الإشعارات."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const json = pm.response.json();",
+            "if (pm.response.code === 403) {",
+            "  pm.test('الحساب مقفل على جهاز آخر (متوقع في SP2-07)', function () { pm.expect(json?.errors?.code).to.eql('session_active'); });",
+            "} else {",
+            "  pm.test('تسجيل دخول الطالب ناجح', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+            "  if (json?.data?.access_token) {",
+            "    pm.collectionVariables.set('student_token', json.data.access_token);",
+            "    pm.collectionVariables.set('token', json.data.access_token);",
+            "  }",
+            "  if (json?.data?.user?.id) { pm.collectionVariables.set('student_id', String(json.data.user.id)); }",
+            "}"
+          ] } }]
+        },
+        {
+          "name": "تسجيل دخول ولي الأمر",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"{{parent_phone}}\",\n  \"password\": \"{{password}}\",\n  \"type\": \"parent\"\n}" },
+            "url": "{{base_url}}/auth/login",
+            "description": "حساب ولي الأمر **غير** مقيّد بجلسة واحدة، ويستطيع تسجيل الخروج بشكل طبيعي."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('تسجيل دخول ولي الأمر ناجح', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+            "const json = pm.response.json();",
+            "if (json?.data?.access_token) {",
+            "  pm.collectionVariables.set('parent_token', json.data.access_token);",
+            "  pm.collectionVariables.set('token', json.data.access_token);",
+            "}",
+            "if (json?.data?.user?.id) { pm.collectionVariables.set('parent_id', String(json.data.user.id)); }"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "02 - أمان الحساب: جلسة واحدة للطالب (SP2-07)",
+      "description": "**الحالة: تم الإصلاح.**\n\nحساب الطالب مرتبط بجلسة واحدة فقط، والمنع من جهة الـ Backend:\n- لا يستطيع الطالب تسجيل الخروج من التطبيق.\n- حذف بيانات التطبيق لا يفيد: محاولة الدخول من جديد تُرفض ما دامت الجلسة قائمة على السيرفر.\n- الأدمن وحده يستطيع إنهاء الجلسة ليتمكن الطالب من الدخول من جهاز جديد.\n\nالأهل والأدمن غير متأثرين.",
+      "item": [
+        {
+          "name": "محاولة دخول ثانية بنفس الحساب (متوقع 403)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"{{student_phone}}\",\n  \"password\": \"{{password}}\",\n  \"type\": \"user\"\n}" },
+            "url": "{{base_url}}/auth/login",
+            "description": "يمثّل الجهاز الثاني أو نفس الجهاز بعد حذف بيانات التطبيق.\n\n**الرد المتوقع 403:**\n```json\n{\n  \"status\": \"error\",\n  \"message\": \"هذا الحساب مسجل الدخول على جهاز آخر. لتسجيل الدخول من جهاز جديد يرجى التواصل مع الإدارة\",\n  \"errors\": { \"code\": \"session_active\" }\n}\n```\nالتطبيق يجب أن يفحص `errors.code` لا نص الرسالة."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('الدخول الثاني مرفوض بـ 403', function () { pm.response.to.have.status(403); });",
+            "pm.test('رمز الخطأ session_active', function () { pm.expect(pm.response.json()?.errors?.code).to.eql('session_active'); });"
+          ] } }]
+        },
+        {
+          "name": "تسجيل خروج الطالب (متوقع 403)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{student_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{base_url}}/auth/logout",
+            "description": "تسجيل الخروج ممنوع لحساب الطالب، لأنه يحرّر الحساب لجهاز آخر.\n\n**الرد المتوقع 403:** `errors.code = logout_not_allowed`.\n\nالتطبيق يجب أن يخفي زر تسجيل الخروج لحساب الطالب. (تسجيل خروج ولي الأمر والأدمن يعمل كالمعتاد ويرجع 200.)"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('تسجيل خروج الطالب مرفوض', function () { pm.response.to.have.status(403); });",
+            "pm.test('رمز الخطأ logout_not_allowed', function () { pm.expect(pm.response.json()?.errors?.code).to.eql('logout_not_allowed'); });"
+          ] } }]
+        },
+        {
+          "name": "تفاصيل الطالب: حالة الجلسة (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/students/{{student_id}}",
+            "description": "**جديد:** الحقل `has_active_session` (true/false).\n\nاللوحة تعرضه كشارة، وتُظهر زر إنهاء الجلسة فقط عندما يكون `true`."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('الطلب ناجح', function () { pm.response.to.have.status(200); });",
+            "pm.test('يحتوي has_active_session', function () { pm.expect(pm.response.json()?.data).to.have.property('has_active_session'); });"
+          ] } }]
+        },
+        {
+          "name": "إنهاء جلسة الطالب (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{base_url}}/admin/students/{{student_id}}/reset-session",
+            "description": "**Endpoint جديد.** يُستخدم عندما يغيّر الطالب هاتفه أو يحذف بيانات التطبيق.\n\nيحذف توكنات الطالب وأجهزته، فيفقد الجهاز القديم الوصول (401) وتتوقف الإشعارات عنه، ويستطيع الطالب تسجيل الدخول من جديد.\n\n**اللوحة:** يجب عرض رسالة تأكيد قبل التنفيذ."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('تم إنهاء الجلسة', function () { pm.response.to.have.status(200); });"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "03 - أولياء الأمور والطلاب المرتبطون (SP2-XX)",
+      "description": "**الحالة: Regression تم إصلاحه.**\n\nكان `GET /admin/parents` لا يُرجع الطلاب المرتبطين إطلاقاً. الآن كل ولي أمر يأتي معه `students[]` و `students_count`، في القائمة وفي التفاصيل.",
+      "item": [
+        {
+          "name": "قائمة أولياء الأمور (مع الطلاب المرتبطين)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/admin/parents?per_page={{per_page}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "parents"],
+              "query": [
+                { "key": "per_page", "value": "{{per_page}}", "description": "عدد العناصر في الصفحة (افتراضي 15)." },
+                { "key": "page", "value": "1", "description": "رقم الصفحة.", "disabled": true }
+              ]
+            },
+            "description": "**المُضاف:** `students[]` (id، name، phone) و `students_count` لكل ولي أمر.\n\n```json\n{\n  \"id\": 1,\n  \"name\": \"ولي أمر\",\n  \"phone\": \"+963922222222\",\n  \"students_count\": 2,\n  \"students\": [{ \"id\": 2, \"name\": \"ابن\", \"phone\": \"...\" }]\n}\n```"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('الطلب ناجح', function () { pm.response.to.have.status(200); });",
+            "const first = pm.response.json()?.data?.[0];",
+            "if (first) {",
+            "  pm.collectionVariables.set('parent_id', String(first.id));",
+            "  pm.test('يحتوي students و students_count', function () {",
+            "    pm.expect(first).to.have.property('students');",
+            "    pm.expect(first).to.have.property('students_count');",
+            "  });",
+            "}"
+          ] } }]
+        },
+        {
+          "name": "تفاصيل ولي أمر",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/parents/{{parent_id}}",
+            "description": "نفس الحقول المُضافة: `students[]` و `students_count`."
+          }
+        },
+        {
+          "name": "ربط طلاب بولي أمر",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"student_ids\": [{{student_id}}]\n}" },
+            "url": "{{base_url}}/admin/parents/{{parent_id}}/students",
+            "description": "يضيف الطلاب دون فك ارتباط الطلاب الحاليين. `student_ids` مصفوفة إلزامية بعنصر واحد على الأقل."
+          }
+        },
+        {
+          "name": "فك ارتباط طالب",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/parents/{{parent_id}}/students/{{student_id}}",
+            "description": "يحذف الربط فقط، ولا يحذف الطالب ولا ولي الأمر."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - إحصائيات الدورة (SP2-21)",
+      "description": "**الحالة: تم الإصلاح.**\n\nكانت تفاصيل الدورة تعرض إجمالي الفيديوهات فقط. أُضيف عدّاد مستقل للفيديوهات المجانية محسوب من الفيديوهات الفعلية (`videos.is_free`).",
+      "item": [
+        {
+          "name": "تفاصيل الدورة + الإحصائيات",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/courses/{{course_id}}",
+            "description": "الحقول الإحصائية في `data`:\n- `videos_count`: **إجمالي** الفيديوهات (المجانية ضمنه).\n- `actual_free_videos_count`: **جديد** — عدد الفيديوهات المجانية الفعلي.\n- `lessons_count` و `exams_count` و `active_subscribers_count`.\n\n⚠️ لا تستخدم `free_videos_count` في الإحصائيات؛ فهو حقل يدوي في فورم الدورة وغير مرتبط بالفيديوهات.\n\nالمسار عام (يعمل بدون توكن للزائر)، لكن `has_access` وروابط الفيديو تظهر فقط لمن لديه اشتراك فعّال."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('الطلب ناجح', function () { pm.response.to.have.status(200); });",
+            "const data = pm.response.json()?.data;",
+            "pm.test('العدادان موجودان', function () {",
+            "  pm.expect(data).to.have.property('videos_count');",
+            "  pm.expect(data).to.have.property('actual_free_videos_count');",
+            "});",
+            "pm.test('المجانية ضمن الإجمالي', function () { pm.expect(data.actual_free_videos_count).to.be.at.most(data.videos_count); });"
+          ] } }]
+        },
+        {
+          "name": "الطلاب المشتركون في الدورة (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/courses/{{course_id}}/students?per_page={{per_page}}",
+              "host": ["{{base_url}}"],
+              "path": ["courses", "{{course_id}}", "students"],
+              "query": [{ "key": "per_page", "value": "{{per_page}}", "description": "عدد العناصر في الصفحة." }]
+            },
+            "description": "المشتركون باشتراك **حيّ** فقط: غير منتهٍ وغير مسحوب. هذه نقطة البداية في مسار سحب الاشتراك (المجلد 07)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - تطبيق الأهل: التفاصيل الأكاديمية (SP2-26)",
+      "description": "**الحالة: تم الإصلاح والتوسيع.**\n\nالمعلومات الأكاديمية مرتّبة حسب المادة، ولا تظهر إلا امتحانات الطالب ودوراته. جميع المسارات هنا تتطلب توكن ولي أمر، وترفض أي طالب غير مرتبط بالحساب بـ 403.",
+      "item": [
+        {
+          "name": "أبناء ولي الأمر",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{parent_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/parent/children",
+              "host": ["{{base_url}}"],
+              "path": ["parent", "children"],
+              "query": [{ "key": "search", "value": "", "description": "بحث بالاسم أو رقم الهاتف أو رقم الطالب.", "disabled": true }]
+            },
+            "description": "يحفظ أول ابن في المتغير `student_id` لاستخدامه في بقية الطلبات."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('الطلب ناجح', function () { pm.response.to.have.status(200); });",
+            "const first = pm.response.json()?.data?.[0];",
+            "if (first) { pm.collectionVariables.set('student_id', String(first.id)); }"
+          ] } }]
+        },
+        {
+          "name": "التفاصيل الأكاديمية للطالب",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{parent_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/parent/students/{{student_id}}/academic-details",
+            "description": "**البنية:** قائمة مواد مرتّبة، وتحت كل مادة دوراتها وامتحاناتها ونتائجها.\n\n```\ndata[]: subject { id, name }\n  courses[]: id, title, teacher_name, starts_at, expires_at,\n             is_subscription_active, subscription_status\n    exams[]: id, title, type (mcq|written), description,\n             duration_minutes, total_score, passing_score\n      attempts[] (الأحدث أولاً): id, status (graded|pending_review),\n             score, passed, total_questions, correct_answers,\n             earned_points, total_points, time_spent_seconds,\n             submitted_at, graded_at, feedback\n```\n\n**ملاحظات:**\n- `attempts` فارغة = الامتحان متاح ولم يقدّمه الطالب بعد.\n- `passed`: true ناجح، false راسب، null بانتظار التصحيح أو لا توجد درجة نجاح.\n- `subscription_status`: `active` أو `expired` أو `revoked` (جديد مع SP2-48).\n- لا تظهر الامتحانات المعطّلة التي لم يقدّمها الطالب، وتبقى نتيجة أي امتحان قدّمه حتى لو عُطّل لاحقاً."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('الطلب ناجح', function () { pm.response.to.have.status(200); });",
+            "const course = pm.response.json()?.data?.[0]?.courses?.[0];",
+            "if (course) {",
+            "  pm.test('حقول حالة الاشتراك موجودة', function () {",
+            "    pm.expect(course).to.have.property('is_subscription_active');",
+            "    pm.expect(course).to.have.property('subscription_status');",
+            "  });",
+            "}"
+          ] } }]
+        },
+        {
+          "name": "اشتراكات الطالب (لولي الأمر)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{parent_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/parent/students/{{student_id}}/subscriptions",
+            "description": "الاشتراكات **الحيّة** فقط. الاشتراك المسحوب أو المنتهي لا يظهر هنا."
+          }
+        },
+        {
+          "name": "الباقات المشترك بها الطالب",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{parent_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/parent/students/{{student_id}}/offers",
+            "description": "الباقات ذات الاشتراك الحيّ، مع دوراتها ومدرّسيها."
+          }
+        },
+        {
+          "name": "نتائج امتحانات الطالب",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{parent_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/parent/students/{{student_id}}/exam-attempts?per_page={{per_page}}",
+              "host": ["{{base_url}}"],
+              "path": ["parent", "students", "{{student_id}}", "exam-attempts"],
+              "query": [
+                { "key": "per_page", "value": "{{per_page}}", "description": "عدد العناصر في الصفحة." },
+                { "key": "exam_id", "value": "", "description": "فلترة نتائج امتحان معيّن.", "disabled": true }
+              ]
+            }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const first = pm.response.json()?.data?.[0];",
+            "if (first) { pm.collectionVariables.set('exam_attempt_id', String(first.id)); }"
+          ] } }]
+        },
+        {
+          "name": "تفاصيل محاولة امتحان (مع الإجابات)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{parent_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/parent/students/{{student_id}}/exam-attempts/{{exam_attempt_id}}",
+            "description": "تفاصيل المحاولة كاملة: الامتحان، والإجابات مع الأسئلة والخيارات. يستخدمها التطبيق عند الضغط على نتيجة في شاشة التفاصيل الأكاديمية."
+          }
+        },
+        {
+          "name": "طالب غير مرتبط بالحساب (متوقع 403)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{parent_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/parent/students/999999/academic-details",
+            "description": "تحقق أمني: أي طالب غير مرتبط بحساب ولي الأمر يُرفض بـ 403 ورسالة \"هذا الطالب غير مرتبط بحسابك\"."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('مرفوض بـ 403', function () { pm.response.to.have.status(403); });"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "06 - طرق الدفع والاشتراك (SP2-39)",
+      "description": "**الحالة: أُكمل.**\n\nالأدمن ينشئ طرق الدفع، والطالب يختار طريقة عند الاشتراك، وتُحفظ مع الطلب نسخة من معلوماتها وقت الإرسال.\n\n**تسلسل الاختبار:** إنشاء طريقة (أدمن) ← عرض الطرق (طالب) ← إرسال طلب اشتراك ← مراجعة الطلب (أدمن).",
+      "item": [
+        {
+          "name": "قائمة طرق الدفع للطالب",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{student_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/payment-methods?per_page=50",
+              "host": ["{{base_url}}"],
+              "path": ["payment-methods"],
+              "query": [{ "key": "per_page", "value": "50", "description": "عدد العناصر في الصفحة." }]
+            },
+            "description": "**يُرجع الطرق المفعّلة فقط.** هذه هي الشاشة التي يختار منها الطالب بعد الضغط على \"اشتراك\".\n\nحقول كل طريقة: `id`، `option_name`، `person_name`، `person_phone`، `qr_code` (رابط صورة كامل أو null)، `location`.\n\nالتطبيق يعرض الاسم والرقم مع زر نسخ، وصورة الـ QR إن وُجدت."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('الطلب ناجح', function () { pm.response.to.have.status(200); });",
+            "const first = pm.response.json()?.data?.[0];",
+            "if (first) { pm.collectionVariables.set('payment_method_id', String(first.id)); }"
+          ] } }]
+        },
+        {
+          "name": "إنشاء طريقة دفع (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "option_name", "value": "حوالة شام كاش", "type": "text", "description": "اسم طريقة الدفع. **إلزامي**" },
+                { "key": "person_name", "value": "أحمد محمد", "type": "text", "description": "اسم صاحب الحساب. **إلزامي**" },
+                { "key": "person_phone", "value": "0999999999", "type": "text", "description": "رقم صاحب الحساب. **إلزامي**" },
+                { "key": "qr_code", "type": "file", "src": [], "description": "صورة QR اختيارية (JPG أو PNG حتى 4MB).", "disabled": true },
+                { "key": "location", "value": "دمشق - المزة", "type": "text", "description": "الموقع. اختياري" },
+                { "key": "is_active", "value": "1", "type": "text", "description": "اختياري؛ الطريقة **مفعّلة افتراضياً**.", "disabled": true }
+              ]
+            },
+            "url": "{{base_url}}/admin/payment-methods",
+            "description": "**multipart/form-data** لأن صورة الـ QR ملف.\n\nالـ QR اختياري كما في المتطلب، أما اسم الشخص ورقمه فإلزاميان.\n\nخطأ التحقق 422 يرجع `errors.person_name` و `errors.person_phone`."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('تم الإنشاء', function () { pm.response.to.have.status(201); });",
+            "const id = pm.response.json()?.data?.id;",
+            "if (id) { pm.collectionVariables.set('payment_method_id', String(id)); }"
+          ] } }]
+        },
+        {
+          "name": "قائمة طرق الدفع كاملة (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/admin/payment-methods?per_page={{per_page}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "payment-methods"],
+              "query": [{ "key": "per_page", "value": "{{per_page}}", "description": "عدد العناصر في الصفحة." }]
+            },
+            "description": "للأدمن فقط: يعرض الطرق المفعّلة وغير المفعّلة معاً."
+          }
+        },
+        {
+          "name": "تعديل طريقة دفع (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"person_phone\": \"0977777777\",\n  \"is_active\": false\n}" },
+            "url": "{{base_url}}/admin/payment-methods/{{payment_method_id}}",
+            "description": "كل الحقول اختيارية؛ أرسل ما تغيّر فقط. `is_active: false` تعطيل الطريقة فتختفي عن الطلاب.\n\n⚠️ عند **رفع صورة QR جديدة** استخدم `POST` مع `_method=PUT` بصيغة multipart، لأن PHP لا يقرأ الملفات في طلب PUT مباشرة."
+          }
+        },
+        {
+          "name": "حذف طريقة دفع (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/payment-methods/{{payment_method_id}}",
+            "description": "الحذف لا يؤثر على الطلبات السابقة: كل طلب يحتفظ بنسخة من معلومات الطريقة في `payment_details`."
+          }
+        },
+        {
+          "name": "طلب اشتراك بدورة (طالب)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{student_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "course_id", "value": "{{course_id}}", "type": "text", "description": "الدورة المطلوبة. **إلزامي**" },
+                { "key": "receipt_image", "type": "file", "src": [], "description": "صورة إثبات التحويل. **إلزامي** (صورة حتى 4MB)" },
+                { "key": "payment_method_id", "value": "{{payment_method_id}}", "type": "text", "description": "طريقة الدفع التي حوّل إليها الطالب. اختياري **مؤقتاً** وسيصبح إلزامياً؛ أرسله دائماً." },
+                { "key": "amount", "value": "", "type": "text", "description": "المبلغ المحوّل. اختياري", "disabled": true }
+              ]
+            },
+            "url": "{{base_url}}/subscription-requests",
+            "description": "**multipart/form-data.**\n\nالرد 201 يتضمن `payment_method_id` و `payment_details` (نسخة من اسم الطريقة واسم الشخص ورقمه وقت الإرسال).\n\n**أخطاء:**\n- 422 على `payment_method_id`: الطريقة غير موجودة أو عُطّلت بعد فتح الشاشة ← أعد تحميل قائمة الطرق.\n- 401: بدون توكن (المسار محمي)."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('تم إرسال الطلب', function () { pm.response.to.have.status(201); });",
+            "const id = pm.response.json()?.data?.id;",
+            "if (id) { pm.collectionVariables.set('subscription_request_id', String(id)); }"
+          ] } }]
+        },
+        {
+          "name": "طلب اشتراك بباقة (طالب)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{student_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "offer_id", "value": "{{offer_id}}", "type": "text", "description": "الباقة المطلوبة. **إلزامي**" },
+                { "key": "receipt_image", "type": "file", "src": [], "description": "صورة إثبات التحويل. **إلزامي**" },
+                { "key": "payment_method_id", "value": "{{payment_method_id}}", "type": "text", "description": "طريقة الدفع المختارة." },
+                { "key": "amount", "value": "", "type": "text", "description": "المبلغ. اختياري", "disabled": true }
+              ]
+            },
+            "url": "{{base_url}}/offer-subscription-requests",
+            "description": "نفس آلية طلب الدورة. تُرفض الباقة إذا كانت خارج فترة الشراء برسالة \"العرض غير متاح\"."
+          }
+        },
+        {
+          "name": "طلبات الاشتراك (Admin) - مع فلتر الحالة",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/admin/subscription-requests?status=pending&per_page={{per_page}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "subscription-requests"],
+              "query": [
+                { "key": "status", "value": "pending", "description": "فلترة الحالة: pending أو approved أو rejected. اتركه فارغاً لعرض الكل." },
+                { "key": "per_page", "value": "{{per_page}}", "description": "عدد العناصر في الصفحة." }
+              ]
+            },
+            "description": "**المُضاف:** `payment_details` في كل طلب (اسم الطريقة واسم الشخص والرقم). اعرض عمود \"طريقة الدفع\" في الجدول من `payment_details.option_name`."
+          }
+        },
+        {
+          "name": "تفاصيل طلب اشتراك (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/subscription-requests/{{subscription_request_id}}",
+            "description": "**الحقول المهمة:**\n- `payment_details`: معلومات الطريقة **كما كانت وقت إرسال الطلب** — أي الحساب الذي حوّل إليه الطالب فعلاً. اعرضها تحت \"تم التحويل إلى\".\n- `payment_method`: الطريقة بحالتها الحالية، أو null إذا حُذفت. للمعلومة فقط.\n- `subscriptions[]`: الاشتراكات الناتجة عن الطلب مع `status` لكل منها (مفيد بعد السحب في المجلد 07).\n- إذا كانت `payment_details = null` فالطلب من نسخة تطبيق قديمة؛ يُراجع من صورة الحوالة."
+          }
+        },
+        {
+          "name": "قبول طلب اشتراك (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"access_ends_at\": \"2027-01-31\"\n}" },
+            "url": "{{base_url}}/admin/subscription-requests/{{subscription_request_id}}/approve",
+            "description": "`access_ends_at` تاريخ انتهاء وصول الطالب، ويجب أن يكون **بعد اليوم**.\n\nطلب الباقة يُنشئ اشتراكاً لكل دورة فيها، بمدة `access_duration_days` محسوبة من لحظة القبول."
+          }
+        },
+        {
+          "name": "رفض طلب اشتراك (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"rejection_reason\": \"صورة الحوالة غير واضحة\"\n}" },
+            "url": "{{base_url}}/admin/subscription-requests/{{subscription_request_id}}/reject",
+            "description": "سبب الرفض إلزامي، ويصل للطالب في إشعار."
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - سحب الاشتراك من الطالب (SP2-48)",
+      "description": "**جديد.**\n\nالإدارة تسحب اشتراك طالب في دورة أو باقة. السجل لا يُحذف: يُعلَّم `revoked` مع من سحبه ومتى ولماذا، ويفقد الطالب الوصول فوراً.\n\n**المسار:** الدورة/الباقة ← المشتركون ← اختيار الطالب ← سحب ← تأكيد.\n\n`status` لكل اشتراك: `active` أو `expired` أو `revoked`.",
+      "item": [
+        {
+          "name": "اشتراكات الطالب بكل حالاتها (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/admin/students/{{student_id}}/subscriptions?per_page={{per_page}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "students", "{{student_id}}", "subscriptions"],
+              "query": [
+                { "key": "per_page", "value": "{{per_page}}", "description": "عدد العناصر في الصفحة." },
+                { "key": "page", "value": "1", "description": "رقم الصفحة.", "disabled": true }
+              ]
+            },
+            "description": "**Endpoint جديد.** كل اشتراكات الطالب: الفعّالة والمنتهية والمسحوبة.\n\nحقول كل صف: `status`، `course` (id، title)، `offer` (id، title)، `starts_at`، `expires_at`، `revoked_at`، `revocation_reason`، و `revoker` (اسم الأدمن الذي سحبه)."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('الطلب ناجح', function () { pm.response.to.have.status(200); });",
+            "const first = pm.response.json()?.data?.[0];",
+            "if (first) { pm.test('يحتوي status', function () { pm.expect(first).to.have.property('status'); }); }"
+          ] } }]
+        },
+        {
+          "name": "المشتركون في الباقة (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/admin/offers/{{offer_id}}/students?per_page={{per_page}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "offers", "{{offer_id}}", "students"],
+              "query": [{ "key": "per_page", "value": "{{per_page}}", "description": "عدد العناصر في الصفحة." }]
+            },
+            "description": "**Endpoint جديد.** الطلاب الذين لديهم اشتراك حيّ من هذه الباقة، صف واحد لكل طالب. يقابله للدورات: `GET /courses/{course}/students`."
+          }
+        },
+        {
+          "name": "سحب اشتراك دورة",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"مشاركة الحساب مع طالب آخر\"\n}" },
+            "url": "{{base_url}}/admin/courses/{{course_id}}/students/{{student_id}}/revoke",
+            "description": "**Endpoint جديد.** يسحب **كل** اشتراك حيّ للطالب في هذه الدورة، سواء اشتراها مباشرة أو وصلته ضمن باقة. باقي دورات الباقة تبقى مفتوحة.\n\n`reason` اختياري (حتى 1000 حرف) ويظهر في سجل الاشتراك.\n\n**الردود:**\n- 200: قائمة الاشتراكات المسحوبة، كل منها `status = revoked`.\n- 404: لا يوجد اشتراك فعّال للطالب في هذه الدورة.\n- 403: التوكن ليس لأدمن.\n\n**اللوحة:** رسالة تأكيد قبل التنفيذ."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "if (pm.response.code === 200) {",
+            "  pm.test('تم السحب والحالة revoked', function () { pm.expect(pm.response.json()?.data?.[0]?.status).to.eql('revoked'); });",
+            "} else {",
+            "  pm.test('لا يوجد اشتراك فعّال (404 متوقع)', function () { pm.response.to.have.status(404); });",
+            "}"
+          ] } }]
+        },
+        {
+          "name": "سحب اشتراك باقة",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"استرجاع المبلغ\"\n}" },
+            "url": "{{base_url}}/admin/offers/{{offer_id}}/students/{{student_id}}/revoke",
+            "description": "**Endpoint جديد.** يسحب الباقة كاملة: كل اشتراكات الطالب الحيّة الناتجة عنها، أي كل دورات الباقة دفعة واحدة."
+          }
+        },
+        {
+          "name": "التحقق: الطالب فقد الوصول",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{student_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/courses/{{course_id}}",
+            "description": "بعد السحب: `has_access = false`، وتختفي روابط الفيديو والملفات المدفوعة، ويبقى عنوان الدورة ودروسها ظاهراً ككتالوج. كما ينقص `active_subscribers_count`، ويختفي الطالب من قائمة المشتركين."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('الطلب ناجح', function () { pm.response.to.have.status(200); });",
+            "pm.test('لا وصول بعد السحب', function () { pm.expect(pm.response.json()?.data?.has_access).to.eql(false); });"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "08 - إشعارات الأهل حسب التصنيف (SP2-49)",
+      "description": "**الحالة: تم الإصلاح.**\n\nإرسال إشعار لفئة محددة من الأهل بدل إرسالها للجميع.\n\n**قواعد الاستهداف:**\n- الفلاتر (الصف، نوع الدراسة، المرحلة، المحافظة، الجنس، طلاب محددون) تصف **الطالب**، وتُطابق على أبناء ولي الأمر، ويجب أن تتحقق **كلها على نفس الابن**.\n- `parent_ids` يختار أولياء أمور مباشرة، و**يُضاف** إلى المجموعة المفلترة ولا يضيّقها.\n- بلا أي فلتر ← كل الفئة المستهدفة.\n\n⚠️ الإرسال يتم عبر queue: تأكد أن `php artisan queue:work` يعمل على السيرفر، وإلا بقي الإشعار بحالة pending دون إرسال.",
+      "item": [
+        {
+          "name": "أنواع الجهات المستهدفة",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/broadcast-notifications/target-types",
+            "description": "يرجع `students` و `parents` و `all` مع تسمياتها العربية. تستخدمها اللوحة لبناء قائمة الاختيار."
+          }
+        },
+        {
+          "name": "قائمة الصفوف (لبناء الفلتر)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/sub-categories?per_page=100",
+              "host": ["{{base_url}}"],
+              "path": ["sub-categories"],
+              "query": [
+                { "key": "category_id", "value": "", "description": "فلترة الصفوف حسب المرحلة الدراسية.", "disabled": true },
+                { "key": "per_page", "value": "100", "description": "عدد العناصر في الصفحة." }
+              ]
+            },
+            "description": "مصدر قيم `sub_category_id` (الصف) في شاشة إرسال الإشعار."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const first = pm.response.json()?.data?.[0];",
+            "if (first) { pm.collectionVariables.set('sub_category_id', String(first.id)); }"
+          ] } }]
+        },
+        {
+          "name": "قائمة أنواع الدراسة (لبناء الفلتر)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/study-types",
+            "description": "مصدر قيم `study_type_id` (نوع الدراسة) في شاشة إرسال الإشعار."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const first = pm.response.json()?.data?.[0];",
+            "if (first) { pm.collectionVariables.set('study_type_id', String(first.id)); }"
+          ] } }]
+        },
+        {
+          "name": "إشعار لأهالي صف معيّن",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"اجتماع أولياء الأمور\",\n  \"content\": \"ندعو أهالي طلاب الصف الثالث الثانوي العلمي لحضور الاجتماع يوم السبت.\",\n  \"target_types\": [\"parents\"],\n  \"sub_category_id\": {{sub_category_id}}\n}" },
+            "url": "{{base_url}}/admin/broadcast-notifications",
+            "description": "**الحقول:**\n- `title` إلزامي (حتى 255)، `content` إلزامي (حتى 1000).\n- `target_types` إلزامي: مصفوفة من `students` / `parents` / `all`.\n- `sub_category_id`: الصف.\n\nيصل الإشعار فقط لأولياء أمور طلاب هذا الصف."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('تم إنشاء الإشعار', function () { pm.response.to.have.status(201); });",
+            "const id = pm.response.json()?.data?.id;",
+            "if (id) { pm.collectionVariables.set('notification_id', String(id)); }"
+          ] } }]
+        },
+        {
+          "name": "إشعار لأهالي نوع دراسة معيّن",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"بدء الدورة المكثفة\",\n  \"content\": \"تبدأ الدورة المكثفة لطلاب المعهد يوم الأحد القادم.\",\n  \"target_types\": [\"parents\"],\n  \"study_type_id\": {{study_type_id}}\n}" },
+            "url": "{{base_url}}/admin/broadcast-notifications",
+            "description": "استهداف حسب نوع الدراسة فقط."
+          }
+        },
+        {
+          "name": "إشعار بتصنيفين معاً (صف + نوع دراسة)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"جدول الامتحانات\",\n  \"content\": \"صدر جدول الامتحانات النهائية.\",\n  \"target_types\": [\"parents\"],\n  \"sub_category_id\": {{sub_category_id}},\n  \"study_type_id\": {{study_type_id}}\n}" },
+            "url": "{{base_url}}/admin/broadcast-notifications",
+            "description": "الشرطان يجب أن يتحققا على **نفس الابن**: طالب في هذا الصف **و** بهذا نوع الدراسة.\n\nفلاتر إضافية متاحة: `category_id` (المرحلة)، `governorate_id` (المحافظة)، `gender` (male/female)."
+          }
+        },
+        {
+          "name": "إشعار لأهالي طلاب محددين",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"ملاحظة خاصة\",\n  \"content\": \"يرجى مراجعة الإدارة بخصوص اشتراك ابنكم.\",\n  \"target_types\": [\"parents\"],\n  \"student_ids\": [{{student_id}}]\n}" },
+            "url": "{{base_url}}/admin/broadcast-notifications",
+            "description": "يصل لأهالي الطلاب المحددين فقط."
+          }
+        },
+        {
+          "name": "إشعار لأولياء أمور محددين + صف",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"تنبيه\",\n  \"content\": \"إشعار لأهالي الصف المحدد بالإضافة إلى أولياء أمور مختارين.\",\n  \"target_types\": [\"parents\"],\n  \"sub_category_id\": {{sub_category_id}},\n  \"parent_ids\": [{{parent_id}}]\n}" },
+            "url": "{{base_url}}/admin/broadcast-notifications",
+            "description": "**المُصلَح:** الاختيار الصريح **يُضاف** للمجموعة المفلترة ولا يتقاطع معها. النتيجة: أهالي الصف **+** أولياء الأمور المختارون.\n\n(قبل الإصلاح كان يُشترط تحقق الاثنين معاً فلا يصل الإشعار لأحد غالباً.)"
+          }
+        },
+        {
+          "name": "إشعار للطلاب والأهل معاً",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"عطلة رسمية\",\n  \"content\": \"تعطّل الدروس يوم الخميس.\",\n  \"target_types\": [\"students\", \"parents\"],\n  \"sub_category_id\": {{sub_category_id}}\n}" },
+            "url": "{{base_url}}/admin/broadcast-notifications",
+            "description": "**المُصلَح:** كانت تُحفظ الجهة الأولى فقط، فيصل الإشعار للطلاب دون الأهل. الآن تُحفظ الجهتان معاً.\n\nاستخدام `\"all\"` يعني الجميع، ولا حاجة لإضافة جهة أخرى معه."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('تم إنشاء الإشعار', function () { pm.response.to.have.status(201); });",
+            "pm.test('الجهتان محفوظتان', function () {",
+            "  pm.expect(pm.response.json()?.data?.target_types).to.include.members(['students', 'parents']);",
+            "});"
+          ] } }]
+        },
+        {
+          "name": "قائمة الإشعارات المرسلة (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/broadcast-notifications",
+            "description": "لكل إشعار: `target_types` و `filters` (التصنيف المستخدم) و `status` (pending / sending / completed / failed) و `sent_count`.\n\n**ملاحظة:** `sent_count` صار عدد **المستلمين** لا عدد الأجهزة؛ ولي الأمر بلا جهاز استلم الإشعار داخل التطبيق ويُحسب.\n\nبقاء `status = pending` يعني أن الـ queue worker لا يعمل."
+          }
+        },
+        {
+          "name": "تفاصيل إشعار (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/broadcast-notifications/{{notification_id}}"
+          }
+        },
+        {
+          "name": "حذف إشعار (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/admin/broadcast-notifications/{{notification_id}}",
+            "description": "لا يمكن الحذف أثناء الإرسال (pending أو sending) ويرجع 400."
+          }
+        },
+        {
+          "name": "صندوق إشعارات ولي الأمر (تطبيق الأهل)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{parent_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/notifications",
+            "description": "**تحقق من وصول الإشعار فعلياً.** يعرض إشعارات الحساب المسجّل دخوله فقط.\n\nحقول كل إشعار: `title`، `body`، `type` (`broadcast` لإشعارات البث)، `data`.\n\nنفس المسار يخدم الطالب بتوكنه."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('الطلب ناجح', function () { pm.response.to.have.status(200); });"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "09 - فيديوهات عبر روابط يوتيوب",
+      "description": "**جديد.**\n\nالأدمن يرفع الفيديو على يوتيوب ويضيف الرابط. آلية الرفع القديمة موجودة في الكود لكنها مطفأة بمفتاح `VIDEO_UPLOADS_ENABLED=false`.\n\n**حقول الفيديو الجديدة:** `source` (`youtube` أو `upload`)، `youtube_video_id`، `youtube_url`.\n\n⚠️ ارفع الفيديوهات على يوتيوب بوضع **Unlisted**، فمن يملك الرابط يشاهده. الـ Backend يخفي الرابط عن غير المشترك، لكنه لا يمنع مشاركته.",
+      "item": [
+        {
+          "name": "إضافة فيديو برابط يوتيوب (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"lesson_id\": {{lesson_id}},\n  \"title\": \"الدرس الأول - المتتاليات\",\n  \"youtube_url\": \"{{youtube_url}}\",\n  \"duration_seconds\": 610,\n  \"order\": 1,\n  \"is_free\": false,\n  \"status\": \"completed\"\n}" },
+            "url": "{{base_url}}/admin/videos",
+            "description": "**الحقول:**\n- `lesson_id` و `title`: إلزاميان.\n- `youtube_url`: **إلزامي** حالياً. تُقبل كل الصيغ: `watch?v=`، `youtu.be`، `shorts`، `embed`، أو المعرّف وحده.\n- `duration_seconds`: المدة بالثواني، تُدخل يدوياً.\n- `thumbnail`: اختياري؛ إن لم يُرفع تأتي الصورة تلقائياً من يوتيوب.\n- `is_free`: فيديو مجاني يظهر للجميع.\n- `status`: `completed` أو `incomplete`.\n\n**الرد 201:** `source = youtube`، `youtube_video_id`، `youtube_url` موحّد، `url = null`، و `is_downloadable = false` دائماً (لا تحميل لفيديوهات يوتيوب).\n\n**خطأ 422 على `youtube_url`:** الرابط ليس رابط يوتيوب صالحاً."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('تم إنشاء الفيديو', function () { pm.response.to.have.status(201); });",
+            "const data = pm.response.json()?.data;",
+            "if (data?.id) { pm.collectionVariables.set('video_id', String(data.id)); }",
+            "pm.test('المصدر يوتيوب', function () { pm.expect(data?.source).to.eql('youtube'); });",
+            "pm.test('لا تحميل لفيديو يوتيوب', function () { pm.expect(data?.is_downloadable).to.eql(false); });"
+          ] } }]
+        },
+        {
+          "name": "تعديل رابط الفيديو (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"youtube_url\": \"https://youtu.be/dQw4w9WgXcQ\",\n  \"duration_seconds\": 720\n}" },
+            "url": "{{base_url}}/admin/videos/{{video_id}}",
+            "description": "إرسال رابط جديد يستبدل القديم. وإذا كان الفيديو مرفوعاً سابقاً بالآلية القديمة، فإرسال `youtube_url` يحوّله إلى مصدر يوتيوب ويُفرغ `url`.\n\nكل الحقول اختيارية؛ أرسل ما تغيّر فقط."
+          }
+        },
+        {
+          "name": "قائمة الفيديوهات مع الفلاتر (Admin)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/admin/videos?course_id={{course_id}}&per_page={{per_page}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "videos"],
+              "query": [
+                { "key": "course_id", "value": "{{course_id}}", "description": "فيديوهات دورة معيّنة." },
+                { "key": "lesson_id", "value": "", "description": "فيديوهات درس معيّن.", "disabled": true },
+                { "key": "unit_id", "value": "", "description": "فيديوهات وحدة معيّنة.", "disabled": true },
+                { "key": "subject_id", "value": "", "description": "فيديوهات مادة معيّنة.", "disabled": true },
+                { "key": "sub_category_id", "value": "", "description": "فيديوهات صف معيّن.", "disabled": true },
+                { "key": "category_id", "value": "", "description": "فيديوهات مرحلة دراسية.", "disabled": true },
+                { "key": "teacher_id", "value": "", "description": "فيديوهات مدرّس معيّن.", "disabled": true },
+                { "key": "per_page", "value": "{{per_page}}", "description": "عدد العناصر في الصفحة." }
+              ]
+            },
+            "description": "فلاتر المنهج الموحّدة. كل فيديو يحمل `source` فتعرف اللوحة أيّها من يوتيوب وأيّها مرفوع قديماً."
+          }
+        },
+        {
+          "name": "محاولة رفع ملف فيديو (متوقع 422)",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{admin_token}}", "type": "string" }] },
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "lesson_id", "value": "{{lesson_id}}", "type": "text" },
+                { "key": "title", "value": "درس مرفوع", "type": "text" },
+                { "key": "video", "type": "file", "src": [], "description": "ملف فيديو — مرفوض ما دام VIDEO_UPLOADS_ENABLED=false." }
+              ]
+            },
+            "url": "{{base_url}}/admin/videos",
+            "description": "**توثيق الآلية القديمة المعطّلة.**\n\nالرد 422 على الحقل `video`: \"رفع ملفات الفيديو متوقف حالياً. يرجى رفع الفيديو على يوتيوب وإضافة الرابط\".\n\nلإعادة تفعيل الرفع مستقبلاً: `VIDEO_UPLOADS_ENABLED=true` في `.env` ثم `php artisan config:clear`. عندها يُقبل الحقل `video` (mp4/webm/ogg/mov/wmv حتى 3GB) ويصبح أحد الحقلين مطلوباً: ملف أو رابط."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('الرفع مرفوض أثناء الإطفاء', function () { pm.response.to.have.status(422); });"
+          ] } }]
+        },
+        {
+          "name": "التحقق: الرابط يظهر للمشترك فقط",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{student_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{base_url}}/courses/{{course_id}}",
+            "description": "في `data.lessons[].videos[]`:\n- **مشترك أو فيديو مجاني:** تظهر `youtube_url` و `youtube_video_id` (أو `url` للفيديوهات القديمة).\n- **غير مشترك أو زائر:** تُخفى هذه الحقول تماماً، ويبقى `title` و `source` و `thumbnail` للعرض في الكتالوج.\n\nجرّبه مرة بتوكن طالب مشترك ومرة بدون توكن."
+          }
+        }
+      ]
+    }
+  ]
+}

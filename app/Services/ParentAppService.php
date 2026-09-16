@@ -42,7 +42,7 @@ class ParentAppService
 
         return Subscription::query()
             ->where('student_id', $student->id)
-            ->where('expires_at', '>', now())
+            ->active()
             ->with([
                 'course.teacher',
                 'offer.courses.teacher',
@@ -103,7 +103,7 @@ class ParentAppService
 
         return Subscription::query()
             ->where('student_id', $student->id)
-            ->where('expires_at', '>', now())
+            ->active()
             ->whereNotNull('offer_id')
             ->with(['offer.courses.teacher'])
             ->get()
@@ -188,8 +188,10 @@ class ParentAppService
 
     private function academicCourse(Course $course): array
     {
-        $subscription = $course->subscriptions->sortByDesc('expires_at')->first();
-        $hasAccess = (bool) $subscription?->expires_at?->isFuture();
+        // The live grant if there is one, else the latest (expired or revoked) one.
+        $subscription = $course->subscriptions->first(fn (Subscription $grant) => $grant->isActive())
+            ?? $course->subscriptions->sortByDesc('expires_at')->first();
+        $hasAccess = (bool) $subscription?->isActive();
 
         return [
             'id' => $course->id,
@@ -198,6 +200,7 @@ class ParentAppService
             'starts_at' => $subscription?->starts_at?->toDateTimeString(),
             'expires_at' => $subscription?->expires_at?->toDateTimeString(),
             'is_subscription_active' => $hasAccess,
+            'subscription_status' => $subscription?->status, // active | expired | revoked, null if never subscribed
             'exams' => $course->exams
                 ->filter(fn (Exam $exam) => $exam->attempts->isNotEmpty() || $hasAccess)
                 ->map(fn (Exam $exam) => [

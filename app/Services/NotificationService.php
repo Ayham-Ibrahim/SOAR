@@ -204,6 +204,20 @@ class NotificationService
         );
     }
 
+    public function notifyStudentSubscriptionRevoked(User $student, string $label, ?string $reason): int
+    {
+        return $this->sendToRecipient(
+            $student,
+            'تم إلغاء اشتراكك',
+            $reason
+                ? "تم إلغاء اشتراكك في {$label}: {$reason}"
+                : "تم إلغاء اشتراكك في {$label}. للاستفسار يرجى التواصل مع الإدارة.",
+            [
+                'type' => 'subscription_revoked',
+            ]
+        );
+    }
+
     public function notiParentAccountRequestApprovedForStudent(User $student, ParentModel $parent): int
     {
         return $this->notifyStudentParentAccountApproved($student, $parent);

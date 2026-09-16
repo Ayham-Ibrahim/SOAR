@@ -24,7 +24,7 @@ class BroadcastNotificationService
         $notification = Notification::create([
             'title' => $payload['title'],
             'content' => $payload['content'],
-            'target_types' => [$payload['recipient_type']],
+            'target_types' => $payload['target_types'],
             'status' => Notification::STATUS_PENDING,
             'sent_count' => 0,
             'filters' => $payload['filters'],
@@ -91,8 +91,22 @@ class BroadcastNotificationService
             $rawTargetTypes = [$legacyRecipient];
         }
 
-        $normalizedTargets = array_values(array_unique(array_map('strval', $rawTargetTypes)));
-        $finalRecipient = ! empty($normalizedTargets) ? $normalizedTargets[0] : 'students';
+        $normalizedTargets = array_values(array_intersect(
+            array_unique(array_map('strval', $rawTargetTypes)),
+            array_keys(Notification::getTargetTypes())
+        ));
+
+        if (empty($normalizedTargets)) {
+            $normalizedTargets = [Notification::TARGET_STUDENTS];
+        }
+
+        // "all" already covers both sides; keeping another target beside it
+        // would send a second copy to the same people.
+        if (in_array(Notification::TARGET_ALL, $normalizedTargets, true)) {
+            $normalizedTargets = [Notification::TARGET_ALL];
+        }
+
+        $finalRecipient = $normalizedTargets[0];
         $filters = [];
 
         if (filled(Arr::get($data, 'governorate_id'))) {
@@ -130,7 +144,8 @@ class BroadcastNotificationService
         return [
             'title' => (string) Arr::get($data, 'title', ''),
             'content' => (string) Arr::get($data, 'content', ''),
-            'recipient_type' => in_array($finalRecipient, ['students', 'parents', 'all'], true) ? $finalRecipient : 'students',
+            'target_types' => $normalizedTargets,
+            'recipient_type' => $finalRecipient, // kept for older callers; target_types is what's sent
             'filters' => $filters,
         ];
     }

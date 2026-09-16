@@ -7,8 +7,21 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Validator;
 use Tests\TestCase;
 
+/**
+ * Covers the uploaded-file path, which is switched off while videos come
+ * from YouTube — these run again as soon as VIDEO_UPLOADS_ENABLED=true.
+ */
 class VideoUploadLimitTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        if (! config('video.uploads_enabled')) {
+            $this->markTestSkipped('رفع ملفات الفيديو متوقف حالياً (VIDEO_UPLOADS_ENABLED=false).');
+        }
+    }
+
     public function test_server_upload_limits_are_large_enough_for_2gb_video_uploads(): void
     {
         $requiredBytes = 2 * 1024 * 1024 * 1024;

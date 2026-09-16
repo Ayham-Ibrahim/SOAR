@@ -54,7 +54,9 @@ class CourseController extends Controller
 
         $this->courseService->withStats($course);
 
-        $hasAccess = $this->courseAccess->hasAccess($request->user(), $course);
+        // Public route (guests browse the catalog), so no auth middleware ran:
+        // resolve the student from their bearer token via the sanctum guard.
+        $hasAccess = $this->courseAccess->hasAccess($request->user('sanctum'), $course);
         if (! $hasAccess) {
             $course->makeHidden('rul_channel');
         }
@@ -62,7 +64,8 @@ class CourseController extends Controller
         $course->lessons->each(function ($lesson) use ($hasAccess) {
             $lesson->videos->each(function ($video) use ($hasAccess) {
                 if (! $hasAccess && ! $video->is_free) {
-                    $video->makeHidden('url');
+                    // Whatever the source, the way to watch it stays hidden.
+                    $video->makeHidden(['url', 'youtube_video_id', 'youtube_url']);
                 }
             });
 

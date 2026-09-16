@@ -7,6 +7,7 @@ use App\Models\ParentModel;
 use App\Models\User;
 use App\Services\FcmService;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Log;
@@ -14,8 +15,12 @@ use Illuminate\Support\Facades\Log;
 /**
  * Send Broadcast Notification Job
  *
- * Handles sending notifications to students and parents based on the admin's
- * filters and target recipient type.
+ * Sends a notification to students and/or parents picked by the admin's
+ * classification filters. Every recipient gets a stored notification for
+ * their in-app inbox, plus a push to each device they have registered.
+ *
+ * The counts returned here (and sent_count) are RECIPIENTS, not devices: a
+ * parent with no device still received the notification in the app.
  */
 class SendBroadcastNotification implements ShouldQueue
 {
@@ -69,7 +74,7 @@ class SendBroadcastNotification implements ShouldQueue
                 'notification_id' => $this->notification->id,
                 'total_sent' => $totalSent,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->notification->markAsFailed();
 
             Log::error("Failed to send broadcast notification", [
@@ -82,148 +87,116 @@ class SendBroadcastNotification implements ShouldQueue
     }
 
     /**
-     * Send notification to students only.
+     * Send to the students matching every filter given (a filter left out
+     * doesn't narrow anything, so no filters at all means all students).
+     *
+     * @return int recipients
      */
     private function sendToStudents(FcmService $fcmService): int
     {
-        $query = User::query()->where('is_admin', false);
+        $students = User::query()
+            ->where('is_admin', false)
+            ->tap(fn (Builder $query) => $this->applyStudentFilters($query, $this->studentFilters()))
+            ->get();
 
-        $filters = $this->notification->filters ?? [];
-
-        $query
-            ->when(! empty(Arr::get($filters, 'governorate_id')), function ($query) use ($filters) {
-                $query->where('governorate_id', (int) $filters['governorate_id']);
-            })
-            ->when(! empty(Arr::get($filters, 'category_id')), function ($query) use ($filters) {
-                $query->where('category_id', (int) $filters['category_id']);
-            })
-            ->when(! empty(Arr::get($filters, 'sub_category_id')), function ($query) use ($filters) {
-                $query->where('sub_category_id', (int) $filters['sub_category_id']);
-            })
-            ->when(! empty(Arr::get($filters, 'study_type_id')), function ($query) use ($filters) {
-                $query->where('study_type_id', (int) $filters['study_type_id']);
-            })
-            ->when(! empty(Arr::get($filters, 'gender')), function ($query) use ($filters) {
-                $query->where('gender', (string) $filters['gender']);
-            })
-            ->when(! empty(Arr::get($filters, 'student_ids')), function ($query) use ($filters) {
-                $query->whereIn('id', Arr::wrap($filters['student_ids']));
-            });
-
-        $users = $query->get();
-
-        $totalSent = 0;
-
-        foreach ($users as $user) {
-            $totalSent += $fcmService->sendToUser(
-                $user,
+        foreach ($students as $student) {
+            $fcmService->sendToUser(
+                $student,
                 $this->notification->title,
                 $this->notification->content,
-                [
-                    'type' => $this->notification->filters['notification_type'] ?? 'broadcast',
-                    'notification_id' => (string) $this->notification->id,
-                ]
+                $this->payload()
             );
         }
 
-        return $totalSent;
+        return $students->count();
     }
 
     /**
-     * Send notification to parents only.
+     * Send to parents. The classification filters describe STUDENTS, so they
+     * are matched against the parent's linked children, while parent_ids picks
+     * parents outright. The two are a union: "these parents" plus "parents of
+     * third-graders" reaches both groups, rather than only parents in both.
      *
-     * For parents, the governorate/gender filters are applied against the linked
-     * students, not the parent record itself.
+     * @return int recipients
      */
     private function sendToParents(FcmService $fcmService): int
     {
-        $query = ParentModel::query();
+        $parentIds = array_values(Arr::wrap(Arr::get($this->notification->filters ?? [], 'parent_ids', [])));
+        $studentFilters = $this->studentFilters();
 
-        $filters = $this->notification->filters ?? [];
+        $parents = ParentModel::query()
+            ->when(! empty($parentIds) || ! empty($studentFilters), function (Builder $query) use ($parentIds, $studentFilters) {
+                $query->where(function (Builder $query) use ($parentIds, $studentFilters) {
+                    if (! empty($parentIds)) {
+                        $query->orWhereIn('id', $parentIds);
+                    }
 
-        $query
-            ->when(! empty(Arr::get($filters, 'parent_ids')), function ($query) use ($filters) {
-                $query->whereIn('id', Arr::wrap($filters['parent_ids']));
-            });
-
-        $studentFilters = [];
-
-        if (! empty(Arr::get($filters, 'governorate_id'))) {
-            $studentFilters['governorate_id'] = (int) $filters['governorate_id'];
-        }
-
-        if (! empty(Arr::get($filters, 'category_id'))) {
-            $studentFilters['category_id'] = (int) $filters['category_id'];
-        }
-
-        if (! empty(Arr::get($filters, 'sub_category_id'))) {
-            $studentFilters['sub_category_id'] = (int) $filters['sub_category_id'];
-        }
-
-        if (! empty(Arr::get($filters, 'study_type_id'))) {
-            $studentFilters['study_type_id'] = (int) $filters['study_type_id'];
-        }
-
-        if (! empty(Arr::get($filters, 'gender'))) {
-            $studentFilters['gender'] = (string) $filters['gender'];
-        }
-
-        if (! empty(Arr::get($filters, 'student_ids'))) {
-            $studentFilters['student_ids'] = Arr::wrap($filters['student_ids']);
-        }
-
-        $query->when(! empty($studentFilters), function ($query) use ($studentFilters) {
-            $query->whereHas('students', function ($studentQuery) use ($studentFilters) {
-                $studentQuery
-                    ->when(isset($studentFilters['governorate_id']), function ($studentQuery) use ($studentFilters) {
-                        $studentQuery->where('governorate_id', $studentFilters['governorate_id']);
-                    })
-                    ->when(isset($studentFilters['category_id']), function ($studentQuery) use ($studentFilters) {
-                        $studentQuery->where('category_id', $studentFilters['category_id']);
-                    })
-                    ->when(isset($studentFilters['sub_category_id']), function ($studentQuery) use ($studentFilters) {
-                        $studentQuery->where('sub_category_id', $studentFilters['sub_category_id']);
-                    })
-                    ->when(isset($studentFilters['study_type_id']), function ($studentQuery) use ($studentFilters) {
-                        $studentQuery->where('study_type_id', $studentFilters['study_type_id']);
-                    })
-                    ->when(isset($studentFilters['gender']), function ($studentQuery) use ($studentFilters) {
-                        $studentQuery->where('gender', $studentFilters['gender']);
-                    })
-                    ->when(! empty($studentFilters['student_ids'] ?? []), function ($studentQuery) use ($studentFilters) {
-                        $studentQuery->whereIn('users.id', $studentFilters['student_ids']);
-                    });
-            });
-        });
-
-        $parents = $query->get();
-
-        $totalSent = 0;
+                    if (! empty($studentFilters)) {
+                        $query->orWhereHas('students', fn (Builder $students) => $this->applyStudentFilters($students, $studentFilters));
+                    }
+                });
+            })
+            ->get();
 
         foreach ($parents as $parent) {
-            $totalSent += $fcmService->sendToParent(
+            $fcmService->sendToParent(
                 $parent,
                 $this->notification->title,
                 $this->notification->content,
-                [
-                    'type' => $this->notification->filters['notification_type'] ?? 'broadcast',
-                    'notification_id' => (string) $this->notification->id,
-                ]
+                $this->payload()
             );
         }
 
-        return $totalSent;
+        return $parents->count();
     }
 
     /**
      * Send notification to all users and parents.
+     *
+     * @return int recipients
      */
     private function sendToAll(FcmService $fcmService): int
     {
-        $studentTokens = $this->sendToStudents($fcmService);
-        $parentTokens = $this->sendToParents($fcmService);
-
-        return $studentTokens + $parentTokens;
+        return $this->sendToStudents($fcmService) + $this->sendToParents($fcmService);
     }
 
+    /**
+     * The filters that describe a student, dropping the ones not chosen.
+     */
+    private function studentFilters(): array
+    {
+        $filters = $this->notification->filters ?? [];
+
+        return array_filter([
+            'governorate_id' => Arr::get($filters, 'governorate_id'),
+            'category_id' => Arr::get($filters, 'category_id'),
+            'sub_category_id' => Arr::get($filters, 'sub_category_id'),
+            'study_type_id' => Arr::get($filters, 'study_type_id'),
+            'gender' => Arr::get($filters, 'gender'),
+            'student_ids' => array_values(Arr::wrap(Arr::get($filters, 'student_ids', []))),
+        ], fn ($value) => ! empty($value));
+    }
+
+    /**
+     * Columns are qualified because this also runs inside the parents'
+     * whereHas on the students relation.
+     */
+    private function applyStudentFilters(Builder $query, array $filters): void
+    {
+        $query
+            ->when(isset($filters['governorate_id']), fn (Builder $query) => $query->where('users.governorate_id', (int) $filters['governorate_id']))
+            ->when(isset($filters['category_id']), fn (Builder $query) => $query->where('users.category_id', (int) $filters['category_id']))
+            ->when(isset($filters['sub_category_id']), fn (Builder $query) => $query->where('users.sub_category_id', (int) $filters['sub_category_id']))
+            ->when(isset($filters['study_type_id']), fn (Builder $query) => $query->where('users.study_type_id', (int) $filters['study_type_id']))
+            ->when(isset($filters['gender']), fn (Builder $query) => $query->where('users.gender', (string) $filters['gender']))
+            ->when(! empty($filters['student_ids']), fn (Builder $query) => $query->whereIn('users.id', $filters['student_ids']));
+    }
+
+    private function payload(): array
+    {
+        return [
+            'type' => $this->notification->filters['notification_type'] ?? 'broadcast',
+            'notification_id' => (string) $this->notification->id,
+        ];
+    }
 }
