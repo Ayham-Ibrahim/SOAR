@@ -7,11 +7,11 @@ use Carbon\Carbon;
 
 class OTPService
 {
-    protected $telegramService;
+    protected $smsService;
 
-    public function __construct(TelegramService $telegramService)
+    public function __construct(SMSService $smsService)
     {
-        $this->telegramService = $telegramService;
+        $this->smsService = $smsService;
     }
 
     /**
@@ -99,11 +99,11 @@ class OTPService
     }
 
     /**
-     * Send the OTP via the Telegram bot to the configured group.
+     * Send the OTP via SMS to the user's phone number.
      */
     protected function sendOTP($phone, $otpCode, $type = 'register')
     {
-        return $this->telegramService->sendOTP($otpCode, $type);
+        return $this->smsService->sendOTP($phone, $otpCode, $type);
     }
 
     /**
