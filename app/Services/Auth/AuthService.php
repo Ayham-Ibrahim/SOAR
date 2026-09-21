@@ -360,7 +360,9 @@ class AuthService
         } catch (\Exception $e) {
             return [
                 'success' => false,
-                'message' => 'فشل في إرسال كود التحقق',
+                'message' => $e instanceof \InvalidArgumentException
+                    ? $e->getMessage()
+                    : 'فشل في إرسال كود التحقق',
             ];
         }
     }

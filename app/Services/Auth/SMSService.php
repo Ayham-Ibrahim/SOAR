@@ -2,7 +2,6 @@
 
 namespace App\Services\Auth;
 
-use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -35,11 +34,8 @@ class SMSService
         // 2. تحقق من صيغة الرقم
         if (!preg_match('/^963[0-9]{9}$/', $phoneNumber)) {
             Log::error('Invalid phone number', ['phone' => $phoneNumber]);
-            throw new HttpResponseException(
-                response()->json([
-                    'success' => false,
-                    'message' => 'عذراً، إرسال رمز التحقق متاح فقط للأرقام السورية. يرجى مراجعة الإدارة لإتمام العملية.',
-                ], 400)
+            throw new \InvalidArgumentException(
+                'عذراً، إرسال رمز التحقق متاح فقط للأرقام السورية. يرجى مراجعة الإدارة لإتمام العملية.'
             );
         }
 
