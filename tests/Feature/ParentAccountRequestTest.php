@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\ParentAccountRequest;
 use App\Models\ParentModel;
+use App\Models\SubscriptionRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -149,6 +150,28 @@ class ParentAccountRequestTest extends TestCase
 
         $this->assertDatabaseMissing('users', ['id' => $student->id]);
         $this->assertDatabaseMissing('parent_account_requests', ['requested_by_student_id' => $student->id]);
+    }
+
+    public function test_student_deletion_removes_related_subscription_request_records(): void
+    {
+        $student = User::factory()->create();
+
+        SubscriptionRequest::create([
+            'student_id' => $student->id,
+            'course_id' => null,
+            'receipt_image' => 'receipt.png',
+            'amount' => 50.00,
+            'status' => 'pending',
+        ]);
+
+        $this->assertDatabaseHas('subscription_requests', [
+            'student_id' => $student->id,
+        ]);
+
+        app(\App\Services\Admin\StudentService::class)->delete($student);
+
+        $this->assertDatabaseMissing('users', ['id' => $student->id]);
+        $this->assertDatabaseMissing('subscription_requests', ['student_id' => $student->id]);
     }
 
     public function test_parent_forbidden_from_non_linked_student_data(): void
