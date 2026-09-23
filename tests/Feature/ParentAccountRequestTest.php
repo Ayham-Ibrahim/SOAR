@@ -130,6 +130,27 @@ class ParentAccountRequestTest extends TestCase
         $this->assertNotEmpty($login->json('data.access_token'));
     }
 
+    public function test_student_deletion_removes_related_parent_request_records(): void
+    {
+        $student = User::factory()->create();
+
+        ParentAccountRequest::create([
+            'requested_by_student_id' => $student->id,
+            'parent_name' => 'Delete Parent',
+            'parent_phone' => '+963911113333',
+            'password' => Hash::make('secret123'),
+        ]);
+
+        $this->assertDatabaseHas('parent_account_requests', [
+            'requested_by_student_id' => $student->id,
+        ]);
+
+        app(\App\Services\Admin\StudentService::class)->delete($student);
+
+        $this->assertDatabaseMissing('users', ['id' => $student->id]);
+        $this->assertDatabaseMissing('parent_account_requests', ['requested_by_student_id' => $student->id]);
+    }
+
     public function test_parent_forbidden_from_non_linked_student_data(): void
     {
         $linkedStudent = User::factory()->create();
