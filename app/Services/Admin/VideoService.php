@@ -4,11 +4,16 @@ namespace App\Services\Admin;
 
 use App\Models\Video;
 use App\Services\FileStorage;
+use App\Services\VideoStorage;
 use App\Support\YouTubeVideo;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class VideoService
 {
+    public function __construct(private readonly VideoStorage $videoStorage)
+    {
+    }
+
     public function list(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         return Video::query()
@@ -51,7 +56,21 @@ class VideoService
             'status' => $data['status'] ?? $video->status,
         ];
 
+        $wasHls = $video->isHls();
+
         $video->update($updates + $this->sourceUpdates($video, $data));
+
+        // Switched to another source: the HLS output and original are dead weight.
+        if ($wasHls && ! $video->isHls()) {
+            $this->videoStorage->deleteVideoMedia($video);
+            $video->update([
+                'processing_status' => null,
+                'original_key' => null,
+                'thumbnail_key' => null,
+                'encryption_key' => null,
+                'upload_id' => null,
+            ]);
+        }
 
         return $video->fresh();
     }
@@ -89,6 +108,14 @@ class VideoService
 
     public function delete(Video $video): void
     {
+        if ($video->isHls()) {
+            if ($video->upload_id) {
+                $this->videoStorage->abortMultipartUpload($video->original_key, $video->upload_id);
+            }
+
+            $this->videoStorage->deleteVideoMedia($video);
+        }
+
         $video->delete();
     }
 }

@@ -1,0 +1,930 @@
+{
+  "info": {
+    "name": "SOAR - Video Pipeline (R2 + HLS)",
+    "description": "رفع الفيديو مباشرة إلى Cloudflare R2، تحويله إلى HLS مشفّر، وتشغيله بتوكنات مؤقتة لكل طالب.\n\n## الإعداد\n1. `base_url`: رابط الـ API (مثلاً `https://api.soaar.tech/api`).\n2. `media_base`: `https://media.soaar.tech`.\n3. `admin_phone` / `student_phone` / `password`: حسابات حقيقية. الطالب مشترك في دورة الدرس `lesson_id`.\n4. `upload_filename` / `upload_file_size` / `upload_content_type`: بيانات ملف الفيديو التجريبي.\n\n## الترتيب\n00 المصادقة ← 01 الرفع (انتظر `ready`) ← 02 التشغيل ← 03 الحماية ← 04 الأدمن.\n\n## متطلبات السيرفر\n- `php artisan migrate`\n- قيم `AWS_*` و `VIDEO_*` في `.env`\n- `ffmpeg` و `ffprobe`\n- worker الفيديو: `php artisan queue:work video --queue=video --timeout=7200 --tries=1`\n- الـ Worker منشور على `media.soaar.tech` بنفس `VIDEO_TOKEN_SECRET`",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{admin_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost/api",
+      "type": "string"
+    },
+    {
+      "key": "media_base",
+      "value": "https://media.soaar.tech",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "student_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_phone",
+      "value": "0999999999",
+      "type": "string"
+    },
+    {
+      "key": "student_phone",
+      "value": "0988888888",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "password",
+      "type": "string"
+    },
+    {
+      "key": "lesson_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "upload_filename",
+      "value": "test.mp4",
+      "type": "string"
+    },
+    {
+      "key": "upload_file_size",
+      "value": "10485760",
+      "type": "string"
+    },
+    {
+      "key": "upload_content_type",
+      "value": "video/mp4",
+      "type": "string"
+    },
+    {
+      "key": "hls_video_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "other_video_id",
+      "value": "999999",
+      "type": "string"
+    },
+    {
+      "key": "part_url_1",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "part_etag_1",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "complete_parts",
+      "value": "[]",
+      "type": "string"
+    },
+    {
+      "key": "device_id",
+      "value": "postman-device-1",
+      "type": "string"
+    },
+    {
+      "key": "hls_url",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "playback_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - المصادقة",
+      "description": "تسجيل دخول الأدمن والطالب. التوكنات تُحفظ تلقائياً في `admin_token` و `student_token`.\n\nالطالب مقيّد بجلسة واحدة: إذا رجع 403 `session_active` استخدم `إنهاء جلسة الطالب` من المجموعة الأساسية.",
+      "item": [
+        {
+          "name": "تسجيل دخول الأدمن",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/auth/login",
+            "description": "حساب أدمن (`is_admin = true`) يحصل على توكن بصلاحية `dashboard`.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{admin_phone}}\",\n  \"password\": \"{{password}}\",\n  \"type\": \"user\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تسجيل الدخول ناجح', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "const json = pm.response.json();",
+                  "if (json?.data?.access_token) pm.collectionVariables.set('admin_token', json.data.access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "تسجيل دخول الطالب",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/auth/login",
+            "description": "طالب **مشترك** في دورة الدرس `lesson_id` (أو الفيديو مجاني) حتى ينجح التشغيل.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{student_phone}}\",\n  \"password\": \"{{password}}\",\n  \"type\": \"user\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تسجيل الدخول ناجح', function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                  "const json = pm.response.json();",
+                  "if (json?.data?.access_token) pm.collectionVariables.set('student_token', json.data.access_token);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - رفع الفيديو إلى R2 (الداشبورد)",
+      "description": "تدفّق الرفع المباشر إلى R2. **ملف الفيديو لا يمر على الـ API**: السيرفر يعطي روابط موقّعة مؤقتة، والعميل يرفع الأجزاء مباشرة إلى R2.\n\n## للتجربة من Postman\n1. اختر ملف فيديو **أصغر من 25 MB** (حتى يكون جزءاً واحداً).\n2. ضع حجمه **بالبايت بالضبط** في المتغير `upload_file_size` (Windows: خصائص الملف ← Size بالبايت).\n3. نفّذ الطلبات بالترتيب 1 → 6. في الطلب 3 اختر الملف من تبويب Body ← binary.\n\nكل الطلبات (عدا رفع الجزء) تحتاج توكن الأدمن. الردود هنا **بشكل مجرّد** (بدون `{status, message, data}`) حسب عقد الواجهة.\n\nالحالات: `uploading` ← `processing` ← `ready` أو `failed`.",
+      "item": [
+        {
+          "name": "1. بدء الرفع",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/videos/uploads",
+            "description": "ينشئ سجل الفيديو ويفتح عملية multipart في R2.\n\n- `size`: بالبايت، حتى 2 GB.\n- `content_type`: `video/mp4` أو `video/quicktime` أو `video/webm`.\n- `title` اختياري (الافتراضي اسم الملف).\n\nالرد `201`: `{ video_id, upload_id, part_size, total_parts }`. يحفظ `hls_video_id` تلقائياً.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filename\": \"{{upload_filename}}\",\n  \"size\": {{upload_file_size}},\n  \"content_type\": \"{{upload_content_type}}\",\n  \"lesson_id\": {{lesson_id}},\n  \"title\": \"فيديو تجريبي من Postman\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تم بدء الرفع (201)', function () { pm.expect(pm.response.code).to.be.oneOf([201]); });",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('hls_video_id', json.video_id);",
+                  "pm.test('عدد الأجزاء محسوب', () => pm.expect(json.total_parts).to.be.above(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. طلب روابط رفع الأجزاء",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/videos/{{hls_video_id}}/uploads/parts",
+            "description": "حتى 20 جزءاً في الطلب. كل رابط صالح ساعة (`VIDEO_PART_URL_TTL`).\n\nالرد: `{ parts: [{ part_number, url }], expires_at }`. يحفظ رابط الجزء الأول في `part_url_1`.\n\n409 إذا لم يعد الفيديو في مرحلة الرفع.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"part_numbers\": [\n    1\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تم توقيع الروابط', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('part_url_1', json.parts[0].url);",
+                  "pm.test('الرابط موقّع', () => pm.expect(json.parts[0].url).to.include('X-Amz-Signature'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. رفع الجزء 1 مباشرة إلى R2",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": "{{part_url_1}}",
+            "description": "**هذا الطلب يذهب إلى R2 وليس إلى الـ API.** بدون Authorization.\n\nمن تبويب Body ← binary اختر ملف الفيديو. (في المتصفح يُرسل `file.slice(...)` لكل جزء.)\n\nيحفظ قيمة `ETag` من هيدر الرد — لازمة للطلب 5.\n\nإذا فشل من المتصفح بخطأ CORS: راجع سياسة CORS على الـ bucket (يجب أن تعرض `ETag`).",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "file",
+              "file": {}
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('رفع الجزء نجح', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "const etag = pm.response.headers.get('ETag');",
+                  "pm.test('وصل ETag', () => pm.expect(etag).to.be.a('string'));",
+                  "pm.collectionVariables.set('part_etag_1', etag);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. الأجزاء المرفوعة (للاستكمال)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/videos/{{hls_video_id}}/uploads/parts",
+            "description": "ما الموجود فعلاً في R2، لاستكمال رفع انقطع: العميل يرفع فقط الأجزاء الناقصة.\n\nالرد: `{ part_size, total_parts, uploaded: [{ part_number, etag, size }] }`.\n\n404 إذا انتهت عملية الرفع (أُلغيت أو حذفتها قاعدة الـ lifecycle) — ويصبح الفيديو `failed`.\n\nيحفظ قائمة الأجزاء في `complete_parts` لاستخدامها في الطلب 5.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تم جلب الأجزاء', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "const json = pm.response.json();",
+                  "const parts = json.uploaded.map(p => ({ part_number: p.part_number, etag: p.etag }));",
+                  "pm.collectionVariables.set('complete_parts', JSON.stringify(parts));",
+                  "pm.test('كل الأجزاء مرفوعة', () => pm.expect(parts.length).to.eql(json.total_parts));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "5. إنهاء الرفع",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/videos/{{hls_video_id}}/uploads/complete",
+            "description": "يجمع الأجزاء في R2، يتحقق أن الحجم يطابق `size`، ثم يضع المعالجة في طابور `video`.\n\n- يجب إرسال **كل** الأجزاء، كل رقم مرة واحدة.\n- الجسم هنا مأخوذ تلقائياً من الطلب 4 (`complete_parts`). مثال يدوي:\n```json\n{ \"parts\": [ { \"part_number\": 1, \"etag\": \"\\\"abc...\\\"\" } ] }\n```\n\nالرد: `{ video_id, status: \"processing\" }`. 422 إذا لم يطابق الحجم (ويصبح `failed`).\n\n**يتطلب worker الفيديو شغّالاً**: `php artisan queue:work video --queue=video --timeout=7200 --tries=1`",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"parts\": {{complete_parts}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تم إنهاء الرفع', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('الحالة processing', () => pm.expect(pm.response.json().status).to.eql('processing'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "6. حالة الفيديو",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/videos/{{hls_video_id}}",
+            "description": "يُستدعى كل بضع ثوانٍ حتى تصبح الحالة `ready` أو `failed`.\n\nالرد: `{ id, status, duration, thumbnail_url, error }`.\n- `thumbnail_url`: رابط موقّع صالح 24 ساعة.\n- `error`: رسالة مفهومة عند الفشل.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تم جلب الحالة', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "const json = pm.response.json();",
+                  "pm.test('حالة معروفة', () => pm.expect(json.status).to.be.oneOf(['uploading','processing','ready','failed']));",
+                  "pm.test('لا تظهر تفاصيل التخزين', () => pm.expect(pm.response.text()).to.not.include('originals/'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "إلغاء الرفع",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/videos/{{hls_video_id}}/uploads",
+            "description": "يلغي عملية الرفع في R2 ويحذف سجل الفيديو. فقط لفيديو حالته `uploading` أو `failed` (غير ذلك 409).\n\nالرد: `204` بدون جسم.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تم الإلغاء', function () { pm.expect(pm.response.code).to.be.oneOf([204]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - تشغيل الفيديو (تطبيق الطالب)",
+      "description": "الطالب يطلب رابط تشغيل شخصياً مؤقتاً، ثم المشغّل (ExoPlayer / AVPlayer / hls.js) يكمل وحده:\n1. `master.m3u8` والمقاطع من الـ Worker على `media.soaar.tech` (يتحقق من التوكن في الرابط).\n2. مفتاح فك التشفير من `/api/videos/{id}/key?t=...` (يتحقق من التوكن **والجلسة**).\n\nالفيديو يجب أن يكون `ready`. غيّر `device_id` لتجربة حد الأجهزة.",
+      "item": [
+        {
+          "name": "طلب رابط التشغيل",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "url": "{{base_url}}/lessons/{{lesson_id}}/playback",
+            "description": "**الطلب الوحيد الذي يكتبه كود التطبيق.**\n\n- هيدر `X-Device-Id` **إلزامي**: معرّف ثابت للجهاز.\n- `video_id` اختياري؛ بدونه يُشغَّل أول فيديو HLS في الدرس.\n\nالرد:\n```json\n{ \"hls_url\": \"https://media.soaar.tech/p/{token}/hls/{id}/master.m3u8\", \"expires_at\": \"...\", \"watermark_text\": \"الاسم · 1234\" }\n```\n\n| الكود | المعنى |\n|---|---|\n| 403 | غير مشترك والفيديو غير مجاني |\n| 409 | الفيديو قيد المعالجة / لا يوجد فيديو |\n| 422 | `X-Device-Id` ناقص |\n| 429 | يُشاهَد من جهاز آخر (`errors.code = VIDEO_DEVICE_LIMIT`) |\n\nيحفظ `hls_url` و `playback_token`.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"video_id\": {{hls_video_id}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تم إنشاء رابط التشغيل', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('hls_url', json.hls_url);",
+                  "const m = json.hls_url.match(/\\/p\\/([^/]+)\\/hls\\//);",
+                  "if (m) pm.collectionVariables.set('playback_token', m[1]);",
+                  "pm.test('فيه علامة مائية', () => pm.expect(json.watermark_text).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "قائمة التشغيل عبر الـ Worker",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{hls_url}}",
+            "description": "ما يطلبه المشغّل أولاً. الـ Worker يتحقق من التوكن ويقرأ الملف من R2 الخاص.\n\nيجب أن يحتوي على `v0/index.m3u8` (والجودات الأخرى حسب دقة المصدر).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('الـ Worker أرجع القائمة', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('ملف HLS', () => pm.expect(pm.response.text()).to.include('#EXTM3U'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "قائمة جودة 360p (فيها رابط المفتاح)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{media_base}}/p/{{playback_token}}/hls/{{hls_video_id}}/v0/index.m3u8",
+            "description": "الـ Worker يستبدل `__KEY_URI__` برابط المفتاح الحقيقي الخاص بهذا التوكن.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تم جلب القائمة', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "const body = pm.response.text();",
+                  "pm.test('التشفير AES-128', () => pm.expect(body).to.include('METHOD=AES-128'));",
+                  "pm.test('رابط المفتاح حقيقي', () => { pm.expect(body).to.include('/key?t='); pm.expect(body).to.not.include('__KEY_URI__'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "مفتاح فك التشفير",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/videos/{{hls_video_id}}/key?t={{playback_token}}",
+            "description": "يطلبه المشغّل وحده. **بدون Sanctum**: التوكن في `t` هو الصلاحية.\n\nالرد: 16 بايت خام، `application/octet-stream`، `Cache-Control: no-store, private`.\n\n403 بجسم فارغ إذا: التوكن مزوّر/منتهٍ، لفيديو آخر، أو الجلسة أُلغيت/انتهت. محدود 120 طلب/دقيقة لكل توكن، وكل جلب يُسجَّل في اللوغ.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تم جلب المفتاح', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('16 بايت', () => pm.expect(pm.response.stream.length).to.eql(16));",
+                  "pm.test('لا يُخزَّن', () => pm.expect(pm.response.headers.get('Cache-Control')).to.include('no-store'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - اختبارات الحماية (يجب أن تُرفض)",
+      "description": "كل طلب هنا **يجب أن يفشل**. نفّذ `طلب رابط التشغيل` من المجلد 02 أولاً.",
+      "item": [
+        {
+          "name": "Worker بدون توكن ← 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{media_base}}/hls/{{hls_video_id}}/master.m3u8",
+            "description": "الملفات لا تُخدم أبداً بدون توكن. إذا رجع 200 فالـ Custom Domain القديم على الـ bucket ما زال موجوداً — احذفه فوراً.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('مرفوض', function () { pm.expect(pm.response.code).to.be.oneOf([403, 404]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Worker بتوكن مزوّر ← 403",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{media_base}}/p/{{playback_token}}x/hls/{{hls_video_id}}/master.m3u8",
+            "description": "أي تعديل على التوكن يكسر التوقيع.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('مرفوض', function () { pm.expect(pm.response.code).to.be.oneOf([403, 404]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "توكن فيديو لفيديو آخر ← 403",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/videos/{{other_video_id}}/key?t={{playback_token}}",
+            "description": "ضع في `other_video_id` رقم أي فيديو آخر.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('مرفوض', function () { pm.expect(pm.response.code).to.be.oneOf([403]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "مفتاح بتوكن مزوّر ← 403",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/videos/{{hls_video_id}}/key?t={{playback_token}}x",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('مرفوض', function () { pm.expect(pm.response.code).to.be.oneOf([403]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "تشغيل بدون X-Device-Id ← 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/lessons/{{lesson_id}}/playback",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('مرفوض', function () { pm.expect(pm.response.code).to.be.oneOf([422]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "تشغيل من جهاز ثانٍ ← 429",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "another-device-999"
+              }
+            ],
+            "url": "{{base_url}}/lessons/{{lesson_id}}/playback",
+            "description": "نفس الطالب بجهاز مختلف أثناء صلاحية جلسة الجهاز الأول (ساعتان). مع `VIDEO_REVOKE_OTHER_DEVICES=true` يصبح 200 وتُلغى جلسة الجهاز الأول بدلاً من ذلك.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"video_id\": {{hls_video_id}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('مرفوض', function () { pm.expect(pm.response.code).to.be.oneOf([429]); });",
+                  "pm.test('رمز الخطأ', () => pm.expect(pm.response.json().errors.code).to.eql('VIDEO_DEVICE_LIMIT'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "الطالب لا يرفع فيديوهات ← 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/videos/uploads",
+            "description": "مسارات الرفع للداشبورد فقط.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filename\": \"x.mp4\",\n  \"size\": 1000,\n  \"content_type\": \"video/mp4\",\n  \"lesson_id\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('مرفوض', function () { pm.expect(pm.response.code).to.be.oneOf([403]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - الأدمن",
+      "item": [
+        {
+          "name": "معاينة الأدمن",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "dashboard"
+              }
+            ],
+            "url": "{{base_url}}/lessons/{{lesson_id}}/playback",
+            "description": "الأدمن يشاهد أي فيديو بدون اشتراك وبدون حد أجهزة. للتشغيل في الداشبورد مرّر `hls_url` إلى hls.js (الـ Worker يسمح بـ CORS لدومين الداشبورد في `ALLOWED_ORIGINS`).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"video_id\": {{hls_video_id}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تم', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "حذف فيديو HLS",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/admin/videos/{{hls_video_id}}",
+            "description": "المسار الموجود سابقاً. لفيديو HLS صار يحذف أيضاً الأصل وملفات HLS والصورة المصغّرة من R2.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تم الحذف', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -20,5 +20,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // R2 errors carry bucket paths and endpoints: log them, never show them.
+        $exceptions->render(function (\Aws\Exception\AwsException $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'تعذر الاتصال بخدمة تخزين الفيديو. يرجى المحاولة مرة أخرى.',
+                ], 502);
+            }
+        });
     })->create();

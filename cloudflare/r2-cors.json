@@ -1,0 +1,9 @@
+[
+  {
+    "AllowedOrigins": ["https://DASHBOARD_DOMAIN", "http://localhost:5173"],
+    "AllowedMethods": ["PUT", "GET", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]

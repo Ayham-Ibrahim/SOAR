@@ -44,6 +44,17 @@ return [
             'after_commit' => false,
         ],
 
+        // Transcoding (ProcessVideoJob) runs up to 2 hours; retry_after must
+        // outlast it or the job would be handed to a second worker mid-run.
+        'video' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'video',
+            'retry_after' => 7500,
+            'after_commit' => true,
+        ],
+
         'beanstalkd' => [
             'driver' => 'beanstalkd',
             'host' => env('BEANSTALKD_QUEUE_HOST', 'localhost'),

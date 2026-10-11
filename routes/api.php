@@ -37,6 +37,9 @@ use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SubCategoryController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\SubscriptionRequestController;
+use App\Http\Controllers\Video\PlaybackController;
+use App\Http\Controllers\Video\VideoKeyController;
+use App\Http\Controllers\Video\VideoUploadController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Middleware\CheckAbilities;
 
@@ -177,3 +180,24 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])->group(f
     Route::apiResource('courses', CourseController::class)->except(['index', 'show']);
     Route::get('courses/{course}/students', [CourseController::class, 'subscribers']);
 });
+
+// Video pipeline: dashboard uploads go straight to R2 (pre-signed multipart
+// parts), get transcoded to encrypted HLS, and students play them through
+// the media Worker with short-lived tokens. See config/video.php.
+Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])->group(function () {
+    Route::post('videos/uploads', [VideoUploadController::class, 'store']);
+    Route::post('videos/{video}/uploads/parts', [VideoUploadController::class, 'signParts']);
+    Route::get('videos/{video}/uploads/parts', [VideoUploadController::class, 'parts']);
+    Route::post('videos/{video}/uploads/complete', [VideoUploadController::class, 'complete']);
+    Route::delete('videos/{video}/uploads', [VideoUploadController::class, 'destroy']);
+    Route::get('videos/{video}', [VideoUploadController::class, 'show'])->whereNumber('video');
+});
+
+Route::post('lessons/{lesson}/playback', [PlaybackController::class, 'store'])
+    ->middleware(['auth:sanctum', 'throttle:video-playback']);
+
+// Called by the video player, which can't send a bearer token: the
+// playback token in ?t= is the credential.
+Route::get('videos/{video}/key', [VideoKeyController::class, 'show'])
+    ->whereNumber('video')
+    ->middleware('throttle:video-key');
