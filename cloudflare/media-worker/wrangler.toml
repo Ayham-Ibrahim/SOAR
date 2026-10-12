@@ -11,7 +11,7 @@ bucket_name = "soar-video"
 [vars]
 KEY_BASE = "https://api.soaar.tech/api/videos"
 # Comma-separated origins allowed to play from a browser (dashboard preview).
-ALLOWED_ORIGINS = "https://DASHBOARD_DOMAIN"
+ALLOWED_ORIGINS = "https://soaar.tech,https://www.soaar.tech,http://localhost:5173"
 
 # Secret (same value as Laravel's VIDEO_TOKEN_SECRET):
 #   npx wrangler secret put VIDEO_TOKEN_SECRET
