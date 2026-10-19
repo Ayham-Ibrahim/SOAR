@@ -33,4 +33,28 @@ return [
     'msgplus_sender_id' => env('MSGPLUS_SENDER_ID'),
     'msgplus_template_id' => env('MSGPLUS_TEMPLATE_ID'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | SMS driver
+    |--------------------------------------------------------------------------
+    |
+    | Which provider SMSService uses to deliver OTP codes: "mtn" or "msgplus".
+    |
+    */
+    'sms_driver' => env('SMS_DRIVER', 'mtn'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | MTN Syria concatenated SMS
+    |--------------------------------------------------------------------------
+    |
+    | Max length: 201 chars for Arabic (lang 0), 459 chars for English (lang 1).
+    |
+    */
+    'mtn_url' => env('MTN_SMS_URL', 'https://services.mtnsyr.com:7443/general/MTNSERVICES/ConcatenatedSender.aspx'),
+    'mtn_user' => env('MTN_SMS_USER'),
+    'mtn_pass' => env('MTN_SMS_PASS'),
+    'mtn_sender' => env('MTN_SMS_SENDER', 'SOAR'),
+    'mtn_lang' => env('MTN_SMS_LANG', 0),
+
 ];
