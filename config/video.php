@@ -67,6 +67,22 @@ return [
     // kept. The low ones get 64k audio — at 144p 128k would be half the stream.
     // Changing it only affects videos processed afterwards, and shifts the
     // v0, v1… numbering, so clients must read the qualities from master.m3u8.
+    /*
+    | Offline downloads (HLS). A download is one rendition, fetched with its
+    | own short token; the copy then plays offline until offline_until —
+    | offline_days from the last online sync, never past the subscription's
+    | end — and only on max_download_devices devices per student.
+    */
+
+    'offline_days' => (int) env('VIDEO_OFFLINE_DAYS', 7),
+
+    'download_token_ttl' => (int) env('VIDEO_DOWNLOAD_TOKEN_TTL', 360), // minutes
+
+    'max_download_devices' => (int) env('VIDEO_MAX_DOWNLOAD_DEVICES', 1),
+
+    // Quality chosen when the app doesn't ask for one (the closest one at or below).
+    'download_default_height' => (int) env('VIDEO_DOWNLOAD_DEFAULT_HEIGHT', 360),
+
     'renditions' => [
         [144, 150, 64],
         [240, 300, 64],

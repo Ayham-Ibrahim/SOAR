@@ -38,6 +38,7 @@ use App\Http\Controllers\SubCategoryController;
 use App\Http\Controllers\SubjectController;
 use App\Http\Controllers\SubscriptionRequestController;
 use App\Http\Controllers\Video\PlaybackController;
+use App\Http\Controllers\Video\VideoDownloadController;
 use App\Http\Controllers\Video\VideoKeyController;
 use App\Http\Controllers\Video\VideoUploadController;
 use Illuminate\Support\Facades\Route;
@@ -195,6 +196,13 @@ Route::middleware(['auth:sanctum', CheckAbilities::class.':dashboard'])->group(f
 
 Route::post('lessons/{lesson}/playback', [PlaybackController::class, 'store'])
     ->middleware(['auth:sanctum', 'throttle:video-playback']);
+
+// Offline downloads (student app): one rendition, then renewed by sync.
+Route::middleware(['auth:sanctum', 'throttle:video-playback'])->group(function () {
+    Route::post('lessons/{lesson}/download', [VideoDownloadController::class, 'store']);
+    Route::post('downloads/sync', [VideoDownloadController::class, 'sync']);
+    Route::delete('downloads/{download}', [VideoDownloadController::class, 'destroy']);
+});
 
 // Called by the video player, which can't send a bearer token: the
 // playback token in ?t= is the credential.

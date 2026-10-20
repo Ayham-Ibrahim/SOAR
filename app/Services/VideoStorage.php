@@ -129,6 +129,14 @@ class VideoStorage
         ])['ContentLength'];
     }
 
+    public function getText(string $key): string
+    {
+        return (string) $this->client()->getObject([
+            'Bucket' => $this->bucket(),
+            'Key' => $key,
+        ])['Body'];
+    }
+
     /** Streams the object to disk — a 2 GB original never sits in memory. */
     public function download(string $key, string $path): void
     {

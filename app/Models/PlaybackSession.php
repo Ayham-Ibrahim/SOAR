@@ -16,10 +16,16 @@ class PlaybackSession extends Model
 {
     use HasUuids;
 
+    public const STREAM = 'stream';
+
+    // Fetching the files and key of an offline download.
+    public const DOWNLOAD = 'download';
+
     protected $fillable = [
         'user_id',
         'video_id',
         'device_id',
+        'purpose',
         'ip',
         'user_agent',
         'expires_at',

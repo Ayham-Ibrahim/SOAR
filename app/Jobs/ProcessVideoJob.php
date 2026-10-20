@@ -81,6 +81,7 @@ class ProcessVideoJob implements ShouldQueue
                 'encryption_key' => base64_encode($key),
                 'duration_seconds' => (int) round($probe['duration']),
                 'height' => $probe['height'],
+                'renditions' => array_column($renditions, 0),
                 'thumbnail_key' => $thumbnailKey,
                 'hls_ready_at' => now(),
                 'error' => null,

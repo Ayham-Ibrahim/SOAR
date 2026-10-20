@@ -71,6 +71,7 @@ class Video extends Model
         'part_size',
         'total_parts',
         'height',
+        'renditions',
         'thumbnail_key',
         'encryption_key',
         'hls_ready_at',
@@ -83,6 +84,7 @@ class Video extends Model
         'upload_id',
         'encryption_key',
         'thumbnail_key',
+        'renditions',
     ];
 
     protected $appends = ['youtube_url'];
@@ -96,6 +98,7 @@ class Video extends Model
             'part_size' => 'integer',
             'total_parts' => 'integer',
             'encryption_key' => 'encrypted',
+            'renditions' => 'array',
             'hls_ready_at' => 'datetime',
         ];
     }
@@ -147,6 +150,38 @@ class Video extends Model
     public function hlsPrefix(): string
     {
         return "hls/{$this->id}/";
+    }
+
+    /**
+     * The heights of the HLS renditions in v0, v1… order. Videos processed
+     * before ProcessVideoJob recorded them get them read once from their
+     * master playlist.
+     *
+     * @return list<int>
+     */
+    public function renditionHeights(): array
+    {
+        if ($this->renditions === null && $this->isReady()) {
+            $master = app(VideoStorage::class)->getText($this->hlsPrefix().'master.m3u8');
+            $heights = [];
+
+            // Each #EXT-X-STREAM-INF line is followed by its playlist, v{n}/index.m3u8.
+            if (preg_match_all('/RESOLUTION=\d+x(\d+)[^\n]*\n\s*v(\d+)\//', $master, $matches, PREG_SET_ORDER)) {
+                foreach ($matches as [, $height, $index]) {
+                    $heights[(int) $index] = (int) $height;
+                }
+                ksort($heights);
+            }
+
+            $this->forceFill(['renditions' => array_values($heights)])->saveQuietly();
+        }
+
+        return array_map('intval', $this->renditions ?? []);
+    }
+
+    public function downloads(): HasMany
+    {
+        return $this->hasMany(VideoDownload::class);
     }
 
     public function lesson(): BelongsTo

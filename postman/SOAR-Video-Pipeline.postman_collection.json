@@ -109,6 +109,16 @@
       "key": "playback_token",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "download_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "download_playlist_url",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -919,6 +929,177 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('تم الحذف', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 - التحميل للمشاهدة بدون إنترنت (تطبيق الطالب)",
+      "description": "تحميل فيديو HLS للمشاهدة أوفلاين.\n\n**الشروط:** الفيديو `is_downloadable = true` (من تعديل الفيديو بالداشبورد)، والدورة `allow_download = true`، والطالب مشترك (أو الفيديو مجاني).\n\n**التدفق في التطبيق:**\n1. `طلب تحميل` ← يرجع `playlist_url` لدقة واحدة.\n2. التطبيق ينزّل القائمة، ثم كل المقاطع `.ts`، ثم المفتاح من رابط `URI` داخل القائمة، قبل `download_expires_at`.\n3. يخزّن المفتاح في secure storage ويشغّل النسخة المحلية حتى `offline_until`.\n4. كلما اتصل بالإنترنت: `مزامنة التحميلات` ← يجدّد `offline_until` أو يحذف النسخ غير الصالحة.\n\nكل الطلبات تحتاج `X-Device-Id`: التحميل يعمل على الجهاز الذي حُمّل عليه فقط.",
+      "item": [
+        {
+          "name": "طلب تحميل",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "url": "{{base_url}}/lessons/{{lesson_id}}/download",
+            "description": "- `height` اختياري: دقة من `available_heights`. بدونه: أعلى دقة ≤ 360p.\n- `video_id` اختياري.\n\nالرد:\n```json\n{ \"download_id\": \"uuid\", \"video_id\": 46, \"height\": 360, \"available_heights\": [144,240,360,720],\n  \"playlist_url\": \"https://media.soaar.tech/p/{token}/hls/46/v2/index.m3u8\",\n  \"download_expires_at\": \"...\", \"offline_until\": \"...\", \"watermark_text\": \"...\" }\n```\n\n| الكود | المعنى |\n|---|---|\n| 403 | غير مشترك، أو التحميل غير مسموح لهذا الفيديو/الدورة |\n| 409 | الفيديو قيد المعالجة |\n| 422 | `X-Device-Id` ناقص أو الدقة غير متوفرة |\n| 429 | يوجد تحميلات على جهاز آخر (`VIDEO_DOWNLOAD_DEVICE_LIMIT`) |\n\nإعادة الطلب لنفس الفيديو على نفس الجهاز ترجع نفس `download_id`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"video_id\": {{hls_video_id}},\n  \"height\": 360\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تم إنشاء التحميل', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('download_id', json.download_id);",
+                  "pm.collectionVariables.set('download_playlist_url', json.playlist_url);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "قائمة الدقة المحمّلة (عبر الـ Worker)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{download_playlist_url}}",
+            "description": "ما ينزّله التطبيق أولاً: أسماء المقاطع ورابط المفتاح."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تم', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('فيها المفتاح', () => pm.expect(pm.response.text()).to.include('/key?t='));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "مزامنة التحميلات",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "url": "{{base_url}}/downloads/sync",
+            "description": "يُستدعى كلما كان التطبيق متصلاً. يرسل كل `download_id` المحفوظة على الجهاز.\n\nالرد: `{ downloads: [{ download_id, valid, offline_until }] }`\n- `valid: true` ← حدّث `offline_until` محلياً.\n- `valid: false` ← **احذف الملفات والمفتاح** (انتهى الاشتراك، أُلغي التحميل، أو جهاز مختلف).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"download_ids\": [\"{{download_id}}\"]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تمت المزامنة', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.test('صالح', () => pm.expect(pm.response.json().downloads[0].valid).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "حذف تحميل",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Device-Id",
+                "value": "{{device_id}}"
+              }
+            ],
+            "url": "{{base_url}}/downloads/{{download_id}}",
+            "description": "عندما يحذف الطالب الفيديو من التطبيق. يحرّر خانة الجهاز. الرد `204`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('تم الحذف', function () { pm.expect(pm.response.code).to.be.oneOf([204]); });"
                 ]
               }
             }

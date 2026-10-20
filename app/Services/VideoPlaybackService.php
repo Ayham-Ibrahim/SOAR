@@ -51,6 +51,7 @@ class VideoPlaybackService
             'user_id' => $user->id,
             'video_id' => $video->id,
             'device_id' => $deviceId,
+            'purpose' => PlaybackSession::STREAM,
             'ip' => $ip ?? '',
             'user_agent' => $userAgent ? Str::limit($userAgent, 250, '') : null,
             'expires_at' => $expiresAt,
@@ -68,7 +69,7 @@ class VideoPlaybackService
     /**
      * The lesson's HLS video: the one asked for, or the first by order.
      */
-    private function lessonVideo(Lesson $lesson, ?int $videoId): Video
+    public function lessonVideo(Lesson $lesson, ?int $videoId): Video
     {
         $video = $lesson->videos()
             ->where('source', Video::SOURCE_HLS)
@@ -88,7 +89,7 @@ class VideoPlaybackService
      * Admins always; a free video for any signed-in student; otherwise a
      * live subscription to one of the courses the lesson belongs to.
      */
-    private function canWatch(User $user, Lesson $lesson, Video $video): bool
+    public function canWatch(User $user, Lesson $lesson, Video $video): bool
     {
         if ($user->is_admin || $video->is_free) {
             return true;
@@ -99,8 +100,10 @@ class VideoPlaybackService
 
     private function enforceDeviceLimit(User $user, string $deviceId): void
     {
+        // Download sessions only fetch files for offline use; they don't count.
         $otherDevices = PlaybackSession::query()
             ->where('user_id', $user->id)
+            ->where('purpose', PlaybackSession::STREAM)
             ->active()
             ->where('device_id', '!=', $deviceId);
 
@@ -121,7 +124,7 @@ class VideoPlaybackService
         );
     }
 
-    private function watermark(User $user): string
+    public function watermark(User $user): string
     {
         $digits = preg_replace('/\D/', '', (string) $user->phone);
 
