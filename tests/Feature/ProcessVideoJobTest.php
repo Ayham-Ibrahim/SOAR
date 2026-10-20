@@ -63,8 +63,82 @@ class ProcessVideoJobTest extends TestCase
     }
 
     /**
+     * The FFmpeg command for a 720p source, checked without running FFmpeg:
+     * 144p up to 720p (never upscaled to 1080p), 64k audio on the two
+     * lowest renditions and 128k above.
+     */
+    public function test_the_rendition_ladder_and_audio_bitrates(): void
+    {
+        $storage = new class extends VideoStorage
+        {
+            public array $uploaded = [];
+
+            public function __construct()
+            {
+            }
+
+            public function download(string $key, string $path): void
+            {
+                file_put_contents($path, 'fake');
+            }
+
+            public function uploadMany(array $files, int $concurrency = 10): void
+            {
+                $this->uploaded += $files;
+            }
+        };
+
+        $video = $this->hlsVideo(['processing_status' => Video::PROCESSING, 'encryption_key' => null]);
+
+        $job = new class($video->id) extends ProcessVideoJob
+        {
+            public array $commands = [];
+
+            protected function run(array $command, int $timeout, ?string $cwd = null): string
+            {
+                $this->commands[] = $command;
+
+                if (str_contains($command[0], 'ffprobe')) {
+                    return json_encode([
+                        'streams' => [['codec_type' => 'video', 'height' => 720], ['codec_type' => 'audio']],
+                        'format' => ['duration' => '60.0'],
+                    ]);
+                }
+
+                if ($cwd !== null) { // the HLS transcode
+                    file_put_contents($cwd.'/out/master.m3u8', '#EXTM3U');
+                }
+
+                return '';
+            }
+        };
+
+        $job->handle($storage);
+
+        $ffmpeg = $job->commands[1];
+        $arg = fn (string $flag) => $ffmpeg[array_search($flag, $ffmpeg, true) + 1];
+
+        $this->assertSame(
+            '[0:v]split=4[s0][s1][s2][s3];[s0]scale=-2:144[v0];[s1]scale=-2:240[v1];[s2]scale=-2:360[v2];[s3]scale=-2:720[v3]',
+            $arg('-filter_complex'),
+        );
+        $this->assertSame('v:0,a:0 v:1,a:1 v:2,a:2 v:3,a:3', $arg('-var_stream_map'));
+        $this->assertSame('150k', $arg('-maxrate:v:0'));
+        $this->assertSame('300k', $arg('-maxrate:v:1'));
+        $this->assertSame('2800k', $arg('-maxrate:v:3'));
+        $this->assertSame('64k', $arg('-b:a:0'));
+        $this->assertSame('64k', $arg('-b:a:1'));
+        $this->assertSame('128k', $arg('-b:a:2'));
+        $this->assertSame('128k', $arg('-b:a:3'));
+        $this->assertNotContains('-b:a', $ffmpeg);
+        $this->assertNotContains('-maxrate:v:4', $ffmpeg);
+
+        $this->assertSame(Video::READY, $video->refresh()->processing_status);
+    }
+
+    /**
      * End to end with the real FFmpeg (skipped where it isn't installed):
-     * a 720p clip becomes encrypted 360p + 720p HLS with the key-URI
+     * a 720p clip becomes encrypted 144p/240p/360p/720p HLS with the key-URI
      * placeholder, and the key file is never uploaded.
      */
     public function test_a_real_clip_becomes_encrypted_hls(): void
@@ -122,9 +196,10 @@ class ProcessVideoJobTest extends TestCase
 
         $master = $storage->uploaded[$prefix.'master.m3u8'];
         $this->assertSame('application/vnd.apple.mpegurl', $master[1]);
-        $this->assertStringContainsString('v0/index.m3u8', $master[0]);
-        $this->assertStringContainsString('v1/index.m3u8', $master[0]);
-        $this->assertStringNotContainsString('v2/index.m3u8', $master[0]); // no 1080p from a 720p source
+        $this->assertStringContainsString('RESOLUTION=256x144', $master[0]);
+        $this->assertStringContainsString('RESOLUTION=1280x720', $master[0]);
+        $this->assertStringContainsString('v3/index.m3u8', $master[0]);
+        $this->assertStringNotContainsString('v4/index.m3u8', $master[0]); // no 1080p from a 720p source
 
         $variant = $storage->uploaded[$prefix.'v0/index.m3u8'][0];
         $this->assertStringContainsString('METHOD=AES-128,URI="__KEY_URI__"', $variant);

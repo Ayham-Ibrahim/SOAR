@@ -14,8 +14,8 @@ use Symfony\Component\Process\Process;
 use Throwable;
 
 /**
- * Turns an uploaded original into AES-128 encrypted HLS with up to three
- * renditions, plus a thumbnail. The playlists carry the placeholder key
+ * Turns an uploaded original into AES-128 encrypted HLS with up to five
+ * renditions (config('video.renditions')), plus a thumbnail. The playlists carry the placeholder key
  * URI __KEY_URI__, which the media Worker rewrites per request; the key
  * itself only lives (encrypted) in videos.encryption_key and is never
  * uploaded.
@@ -151,7 +151,7 @@ class ProcessVideoJob implements ShouldQueue
     /**
      * The ladder up to the source height; never upscaled, never empty.
      *
-     * @return list<array{0: int, 1: int}> [height, max kbit/s]
+     * @return list<array{0: int, 1: int, 2?: int}> [height, max video kbit/s, audio kbit/s]
      */
     private function renditions(int $sourceHeight): array
     {
@@ -174,7 +174,7 @@ class ProcessVideoJob implements ShouldQueue
     }
 
     /**
-     * @param  list<array{0: int, 1: int}>  $renditions
+     * @param  list<array{0: int, 1: int, 2?: int}>  $renditions
      */
     private function transcode(string $workDir, string $input, array $renditions, bool $hasAudio): void
     {
@@ -208,7 +208,13 @@ class ProcessVideoJob implements ShouldQueue
         array_push($args, '-force_key_frames', 'expr:gte(t,n_forced*6)', '-sc_threshold', '0');
 
         if ($hasAudio) {
-            array_push($args, '-c:a', 'aac', '-b:a', '128k', '-ac', '2');
+            array_push($args, '-c:a', 'aac', '-ac', '2');
+
+            // One audio copy per rendition (see -var_stream_map), each with
+            // its own bitrate.
+            foreach ($renditions as $i => $rendition) {
+                array_push($args, "-b:a:{$i}", ($rendition[2] ?? 128).'k');
+            }
         }
 
         $streamMap = implode(' ', array_map(
@@ -277,7 +283,7 @@ class ProcessVideoJob implements ShouldQueue
     /**
      * @param  list<string>  $command  never a shell string
      */
-    private function run(array $command, int $timeout, ?string $cwd = null): string
+    protected function run(array $command, int $timeout, ?string $cwd = null): string
     {
         $process = new Process($command, $cwd, null, null, $timeout);
         $process->run();

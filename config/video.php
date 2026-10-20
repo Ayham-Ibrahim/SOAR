@@ -62,12 +62,17 @@ return [
 
     'ffprobe' => env('FFPROBE_BIN', 'ffprobe'),
 
-    // Rendition ladder: [height, max bitrate in kbit/s]. Renditions taller
-    // than the source are skipped; the first one is always kept.
+    // Rendition ladder, lowest first: [height, max video kbit/s, audio kbit/s].
+    // Renditions taller than the source are skipped; the first one is always
+    // kept. The low ones get 64k audio — at 144p 128k would be half the stream.
+    // Changing it only affects videos processed afterwards, and shifts the
+    // v0, v1… numbering, so clients must read the qualities from master.m3u8.
     'renditions' => [
-        [360, 800],
-        [720, 2800],
-        [1080, 5000],
+        [144, 150, 64],
+        [240, 300, 64],
+        [360, 800, 128],
+        [720, 2800, 128],
+        [1080, 5000, 128],
     ],
 
 ];
