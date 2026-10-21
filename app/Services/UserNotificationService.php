@@ -13,6 +13,8 @@ class UserNotificationService
         return UserNotification::query()
             ->where('notifiable_type', $recipient::class)
             ->where('notifiable_id', $recipient->getAuthIdentifier())
+            ->latest()
+            ->orderByDesc('id')
             ->get();
     }
 }
