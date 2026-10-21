@@ -34,7 +34,7 @@ class ParentBroadcastTargetingTest extends TestCase
 
         // No FCM credentials in tests: pushes are skipped, the stored
         // notification (the in-app inbox) is what we assert on.
-        putenv('FIREBASE_CREDENTIALS_FILE=missing-test-credentials.json');
+        config(['services.firebase.credentials_file' => 'missing-test-credentials.json']);
 
         $category = Category::create(['name' => 'ثانوي', 'order' => 1]);
         $this->thirdScientific = SubCategory::create([

@@ -26,8 +26,8 @@ class FcmService
      */
     protected function initConfig(): void
     {
-        $this->firebaseProjectId = env('FIREBASE_PROJECT_ID');
-        $this->credentialsPath = storage_path('app/' . env('FIREBASE_CREDENTIALS_FILE'));
+        $this->firebaseProjectId = config('services.firebase.project_id');
+        $this->credentialsPath = storage_path('app/' . config('services.firebase.credentials_file'));
     }
 
     /**

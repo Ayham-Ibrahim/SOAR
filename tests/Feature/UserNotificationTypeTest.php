@@ -15,7 +15,7 @@ class UserNotificationTypeTest extends TestCase
 
     public function test_notification_types_are_stored_for_all_notification_kinds(): void
     {
-        putenv('FIREBASE_CREDENTIALS_FILE=missing-test-credentials.json');
+        config(['services.firebase.credentials_file' => 'missing-test-credentials.json']);
 
         $user = User::factory()->create();
         Device::create([
@@ -36,7 +36,7 @@ class UserNotificationTypeTest extends TestCase
 
     public function test_notification_is_stored_for_user_without_a_device(): void
     {
-        putenv('FIREBASE_CREDENTIALS_FILE=missing-test-credentials.json');
+        config(['services.firebase.credentials_file' => 'missing-test-credentials.json']);
 
         $user = User::factory()->create();
 
