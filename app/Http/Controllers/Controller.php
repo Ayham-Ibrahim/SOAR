@@ -81,6 +81,19 @@ abstract class Controller
     }
 
     /**
+     * Whether a listing should be limited to the live catalog (see
+     * App\Models\Concerns\InCatalog). Students and guests only ever get the
+     * live catalog. The dashboard gets everything so it can manage — and
+     * re-enable — what's disabled, unless it asks for ?active_only=1, as its
+     * dropdowns do.
+     */
+    protected function catalogOnly(\Illuminate\Http\Request $request): bool
+    {
+        return $request->boolean('active_only')
+            || ! $request->user('sanctum')?->tokenCan('dashboard');
+    }
+
+    /**
      * The unified curriculum hierarchy filter shared by every listing page
      * (subjects, courses, units, lessons, videos, files, exams — see
      * App\Models\Concerns\FiltersByCurriculum): only the keys the client

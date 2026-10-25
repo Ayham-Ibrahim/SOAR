@@ -17,7 +17,7 @@ class ExamController extends Controller
         $exams = $this->examService->list(
             $this->curriculumFilters($request),
             $request->integer('per_page', 15),
-            activeOnly: true,
+            catalogOnly: true,
         );
 
         return $this->paginate($exams, 'تم جلب الامتحانات بنجاح');

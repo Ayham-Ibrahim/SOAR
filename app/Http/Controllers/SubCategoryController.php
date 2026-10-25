@@ -19,7 +19,8 @@ class SubCategoryController extends Controller
     {
         $subCategories = $this->subCategoryService->list(
             $this->curriculumFilters($request),
-            $request->integer('per_page', 15)
+            $request->integer('per_page', 15),
+            $this->catalogOnly($request)
         );
 
         return $this->paginate($subCategories, 'تم جلب الفروع بنجاح');
@@ -32,8 +33,10 @@ class SubCategoryController extends Controller
         return $this->success($subCategory, 'تم إنشاء الفرع بنجاح', 201);
     }
 
-    public function show(SubCategory $sub_category)
+    public function show(Request $request, SubCategory $sub_category)
     {
+        abort_if($this->catalogOnly($request) && ! $sub_category->isInCatalog(), 404);
+
         return $this->success($sub_category->load('category'), 'تم جلب بيانات الفرع بنجاح');
     }
 

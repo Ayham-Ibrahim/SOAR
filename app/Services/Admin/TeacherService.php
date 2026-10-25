@@ -8,13 +8,18 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class TeacherService
 {
-    public function list(int $perPage = 15): LengthAwarePaginator
+    public function list(int $perPage = 15, bool $catalogOnly = false): LengthAwarePaginator
     {
-        return Teacher::query()->withCount('courses')->latest()->paginate($perPage);
+        return Teacher::query()
+            ->withCount(['courses' => fn ($query) => $query->when($catalogOnly, fn ($query) => $query->inCatalog())])
+            ->when($catalogOnly, fn ($query) => $query->where('is_active', true))
+            ->latest()
+            ->paginate($perPage);
     }
+
     public function listِActive(int $perPage = 15): LengthAwarePaginator
     {
-        return Teacher::query()->with(['courses' => fn ($query) => $query->where('is_active', true)])->where('is_active', true)->latest()->paginate($perPage);
+        return Teacher::query()->with(['courses' => fn ($query) => $query->inCatalog()])->where('is_active', true)->latest()->paginate($perPage);
     }
     
     public function create(array $data): Teacher

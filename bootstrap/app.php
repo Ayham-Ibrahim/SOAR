@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'parent' => \App\Http\Middleware\EnsureParentAccount::class,
             'parent.student' => \App\Http\Middleware\EnsureStudentLinkedToParent::class,
+            'student' => \App\Http\Middleware\EnsureStudentAccount::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

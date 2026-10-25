@@ -29,23 +29,24 @@ class ExamAttemptService
 
     private function submitWritten(Exam $exam, User $user, array $data): ExamAttempt
     {
-        return DB::transaction(function () use ($exam, $user, $data) {
-            $isFirstAttempt = $this->lockStudentAndCheckFirstAttempt($exam, $user);
+        $attempt = DB::transaction(function () use ($exam, $user, $data) {
+            $this->lockStudentAndCheckFirstAttempt($exam, $user);
             $submissionFiles = $this->storeWrittenAttachments($data['submission_files']);
-            $attempt = ExamAttempt::create([
+
+            return ExamAttempt::create([
                 'exam_id' => $exam->id,
                 'user_id' => $user->id,
                 'status' => 'pending_review',
                 'time_spent_seconds' => $data['time_spent_seconds'] ?? null,
                 'submission_files' => $submissionFiles,
             ]);
-
-            $this->notificationService->notifyAdminWrittenExamSubmitted(
-                $attempt->fresh(['exam', 'user'])
-            );
-
-            return $attempt;
         });
+
+        // After the commit: the review queue must never lose a submission
+        // because a notification could not go out.
+        $this->notificationService->notifyAdminWrittenExamSubmitted($attempt->fresh(['exam', 'user']));
+
+        return $attempt;
     }
 
     /**
@@ -129,10 +130,13 @@ class ExamAttemptService
         });
     }
 
+    /**
+     * Shared by the student's own results and a parent viewing a child's.
+     */
     public function listForUser(User $user, ?int $examId, int $perPage = 15): LengthAwarePaginator
     {
         return ExamAttempt::where('user_id', $user->id)
-            ->with('exam')
+            ->with($this->examWithCourse())
             ->when($examId, fn($query) => $query->where('exam_id', $examId))
             ->latest()
             ->paginate($perPage);
@@ -141,8 +145,21 @@ class ExamAttemptService
     public function findForUser(User $user, int $id): ExamAttempt
     {
         return ExamAttempt::where('user_id', $user->id)
-            ->with(['exam', 'answers.question', 'answers.choice'])
+            ->with([...$this->examWithCourse(), 'answers.question', 'answers.choice'])
             ->findOrFail($id);
+    }
+
+    /**
+     * The exam with its course title and subject name, for grouping results
+     * by subject. Kept even if the course or subject was deleted since, so a
+     * result never loses its label.
+     */
+    private function examWithCourse(): array
+    {
+        return [
+            'exam.course' => fn ($query) => $query->withTrashed()->select(['id', 'subject_id', 'title']),
+            'exam.course.subject' => fn ($query) => $query->withTrashed()->select(['id', 'name']),
+        ];
     }
 
     public function grade(ExamAttempt $attempt, array $data): ExamAttempt

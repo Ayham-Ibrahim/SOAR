@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Course;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreSubscriptionRequestRequest extends FormRequest
 {
@@ -25,6 +27,25 @@ class StoreSubscriptionRequestRequest extends FormRequest
             // Temporarily optional so app versions from before payment methods can
             // still subscribe — make it 'required' once those are phased out.
             'payment_method_id' => ['nullable', 'integer', Rule::exists('payment_methods', 'id')->where('is_active', true)],
+        ];
+    }
+
+    /**
+     * A course that's disabled, or under a disabled stage/grade/subject,
+     * isn't for sale (see App\Models\Concerns\InCatalog).
+     *
+     * @return array<callable>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator) {
+                $course = Course::find($this->input('course_id'));
+
+                if ($course && ! $course->isInCatalog()) {
+                    $validator->errors()->add('course_id', 'الدورة غير متاحة.');
+                }
+            },
         ];
     }
 

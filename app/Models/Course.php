@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\FiltersByCurriculum;
+use App\Models\Concerns\InCatalog;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +14,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Course extends Model
 {
-    use FiltersByCurriculum, HasFactory, SoftDeletes;
+    use FiltersByCurriculum, HasFactory, InCatalog, SoftDeletes;
+
+    /** @see InCatalog */
+    protected static string $catalogParent = 'subject';
 
     /** @see FiltersByCurriculum */
     protected static array $curriculumFilters = [

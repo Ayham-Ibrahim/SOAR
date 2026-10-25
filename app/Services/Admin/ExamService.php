@@ -9,7 +9,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class ExamService
 {
-    public function list(array $filters = [], int $perPage = 15, bool $activeOnly = false): LengthAwarePaginator
+    public function list(array $filters = [], int $perPage = 15, bool $catalogOnly = false): LengthAwarePaginator
     {
         return Exam::query()
             ->with('course.subject.subCategory.category')
@@ -20,8 +20,12 @@ class ExamService
                     ->whereColumn('exam_id', 'exams.id'),
                 'participants_count'
             )
+            // Everyone's submissions: for the dashboard, not the student app.
+            ->when(! $catalogOnly, fn ($query) => $query->withCount([
+                'attempts as pending_review_count' => fn ($query) => $query->where('status', 'pending_review'),
+            ]))
             ->curriculumFilter($filters)
-            ->when($activeOnly, fn ($query) => $query->where('is_active', true))
+            ->when($catalogOnly, fn ($query) => $query->inCatalog())
             ->latest()
             ->paginate($perPage);
     }

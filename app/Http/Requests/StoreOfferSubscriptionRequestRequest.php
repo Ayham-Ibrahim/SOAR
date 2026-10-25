@@ -39,7 +39,8 @@ class StoreOfferSubscriptionRequestRequest extends FormRequest
             function (Validator $validator) {
                 $offer = Offer::find($this->input('offer_id'));
 
-                if ($offer && ! $offer->isPurchasableNow()) {
+                // An offer whose courses have all left the catalog sells nothing.
+                if ($offer && (! $offer->isPurchasableNow() || ! $offer->courses()->inCatalog()->exists())) {
                     $validator->errors()->add('offer_id', 'العرض غير متاح.');
                 }
             },

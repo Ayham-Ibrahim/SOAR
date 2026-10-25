@@ -63,6 +63,19 @@ class FcmService
             return false;
         }
 
+        try {
+            return $this->push($credentials, $token, $title, $body, $data);
+        } catch (\Throwable $e) {
+            // The notification is already in the recipient's inbox; a failed
+            // push only means no banner on the device.
+            Log::warning('FCM push failed', ['error' => $e->getMessage()]);
+
+            return false;
+        }
+    }
+
+    protected function push(array $credentials, string $token, string $title, string $body, array $data): bool
+    {
         $authToken = $this->getAccessToken($credentials);
         $url = "https://fcm.googleapis.com/v1/projects/{$this->firebaseProjectId}/messages:send";
 

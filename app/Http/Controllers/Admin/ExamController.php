@@ -19,7 +19,8 @@ class ExamController extends Controller
     {
         $exams = $this->examService->list(
             $this->curriculumFilters($request),
-            $request->integer('per_page', 15)
+            $request->integer('per_page', 15),
+            $this->catalogOnly($request)
         );
 
         return $this->paginate($exams, 'تم جلب الامتحانات بنجاح');
@@ -35,7 +36,7 @@ class ExamController extends Controller
     public function show(Exam $exam)
     {
         $exam->load(['course.subject.subCategory.category', 'questions.choices']);
-        $exam->loadCount('questions');
+        $exam->loadCount(['questions', 'attempts as pending_review_count' => fn ($query) => $query->where('status', 'pending_review')]);
         $exam->participants_count = $exam->attempts()->distinct('user_id')->count('user_id');
 
         return $this->success($exam, 'تم جلب بيانات الامتحان بنجاح');

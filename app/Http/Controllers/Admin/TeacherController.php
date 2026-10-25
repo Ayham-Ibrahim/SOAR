@@ -17,7 +17,10 @@ class TeacherController extends Controller
 
     public function index(Request $request)
     {
-        $teachers = $this->teacherService->list($request->integer('per_page', 15));
+        $teachers = $this->teacherService->list(
+            $request->integer('per_page', 15),
+            $this->catalogOnly($request)
+        );
 
         return $this->paginate($teachers, 'تم جلب المدرّسين بنجاح');
     }

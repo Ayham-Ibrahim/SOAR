@@ -17,7 +17,10 @@ class CategoryController extends Controller
 
     public function index(Request $request)
     {
-        $categories = $this->categoryService->list($request->integer('per_page', 15));
+        $categories = $this->categoryService->list(
+            $request->integer('per_page', 15),
+            $this->catalogOnly($request)
+        );
 
         return $this->paginate($categories, 'تم جلب المراحل بنجاح');
     }
@@ -29,8 +32,10 @@ class CategoryController extends Controller
         return $this->success($category, 'تم إنشاء المرحلة بنجاح', 201);
     }
 
-    public function show(Category $category)
+    public function show(Request $request, Category $category)
     {
+        abort_if($this->catalogOnly($request) && ! $category->isInCatalog(), 404);
+
         return $this->success($category, 'تم جلب بيانات المرحلة بنجاح');
     }
 

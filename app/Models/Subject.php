@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\FiltersByCurriculum;
+use App\Models\Concerns\InCatalog;
 use App\Models\Concerns\Orderable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +13,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Subject extends Model
 {
-    use FiltersByCurriculum, HasFactory, Orderable, SoftDeletes;
+    use FiltersByCurriculum, HasFactory, InCatalog, Orderable, SoftDeletes;
+
+    /** @see InCatalog */
+    protected static string $catalogParent = 'subCategory';
 
     /** @see FiltersByCurriculum */
     protected static array $curriculumFilters = [

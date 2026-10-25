@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\FiltersByCurriculum;
+use App\Models\Concerns\InCatalog;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Exam extends Model
 {
-    use FiltersByCurriculum, HasFactory;
+    use FiltersByCurriculum, HasFactory, InCatalog;
+
+    /** @see InCatalog */
+    protected static string $catalogParent = 'course';
 
     /** @see FiltersByCurriculum */
     protected static array $curriculumFilters = [

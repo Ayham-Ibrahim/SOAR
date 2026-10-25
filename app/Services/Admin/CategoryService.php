@@ -8,9 +8,11 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class CategoryService
 {
-    public function list(int $perPage = 15): LengthAwarePaginator
+    public function list(int $perPage = 15, bool $catalogOnly = false): LengthAwarePaginator
     {
-        return Category::query()->paginate($perPage);
+        return Category::query()
+            ->when($catalogOnly, fn ($query) => $query->inCatalog())
+            ->paginate($perPage);
     }
 
     public function create(array $data): Category

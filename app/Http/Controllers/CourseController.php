@@ -21,7 +21,8 @@ class CourseController extends Controller
     {
         $courses = $this->courseService->list(
             $this->curriculumFilters($request),
-            $request->integer('per_page', 15)
+            $request->integer('per_page', 15),
+            $this->catalogOnly($request)
         );
 
         return $this->paginate($courses, 'تم جلب الدورات بنجاح');
@@ -41,9 +42,18 @@ class CourseController extends Controller
      * student has paid access (CourseAccess) or the video is marked free —
      * the lesson/video titles themselves stay visible as a catalog preview
      * either way.
+     *
+     * A course taken out of the catalog (it or its stage/grade/subject
+     * disabled) is gone for everyone except students who already have access.
      */
     public function show(Request $request, Course $course)
     {
+        // Public route (guests browse the catalog), so no auth middleware ran:
+        // resolve the student from their bearer token via the sanctum guard.
+        $hasAccess = $this->courseAccess->hasAccess($request->user('sanctum'), $course);
+
+        abort_if(! $hasAccess && $this->catalogOnly($request) && ! $course->isInCatalog(), 404);
+
         $course->load([
             'subject.subCategory.category',
             'teacher',
@@ -54,9 +64,6 @@ class CourseController extends Controller
 
         $this->courseService->withStats($course);
 
-        // Public route (guests browse the catalog), so no auth middleware ran:
-        // resolve the student from their bearer token via the sanctum guard.
-        $hasAccess = $this->courseAccess->hasAccess($request->user('sanctum'), $course);
         if (! $hasAccess) {
             $course->makeHidden('rul_channel');
         }

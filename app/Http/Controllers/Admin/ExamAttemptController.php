@@ -17,6 +17,8 @@ class ExamAttemptController extends Controller
     /**
      * Review queue: all student submissions, filterable by exam and status
      * (e.g. ?status=pending_review to find written exams awaiting grading).
+     * additional_data.pending_review_count is the whole queue, whatever the
+     * filters, for the dashboard's "بانتظار التصحيح" counter.
      */
     public function index(Request $request)
     {
@@ -27,7 +29,11 @@ class ExamAttemptController extends Controller
             ->latest()
             ->paginate($request->integer('per_page', 15));
 
-        return $this->paginate($attempts, 'تم جلب محاولات الامتحانات بنجاح');
+        return $this->paginateWithData(
+            $attempts,
+            ['pending_review_count' => ExamAttempt::query()->where('status', 'pending_review')->count()],
+            'تم جلب محاولات الامتحانات بنجاح'
+        );
     }
 
     public function show(ExamAttempt $exam_attempt)

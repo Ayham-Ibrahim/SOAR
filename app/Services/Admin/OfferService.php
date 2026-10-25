@@ -8,13 +8,34 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class OfferService
 {
-    public function list(int $perPage = 15, bool $activeOnly = false): LengthAwarePaginator
+    /**
+     * Each offer comes with its courses (teacher and subject included) and
+     * courses_count. With $catalogOnly (the student app, or a dashboard
+     * dropdown): only active offers that still have a course in the catalog,
+     * and of each offer only those courses, counted the same way.
+     */
+    public function list(int $perPage = 15, bool $catalogOnly = false): LengthAwarePaginator
     {
         return Offer::query()
-            ->when($activeOnly, fn ($query) => $query->where('is_active', true))
-            ->withCount(['courses', 'subscriptions'])
+            ->when($catalogOnly, fn ($query) => $query
+                ->where('is_active', true)
+                ->whereHas('courses', fn ($query) => $query->inCatalog()))
+            ->with(['courses' => fn ($query) => $this->offerCourses($query, $catalogOnly)->with(['teacher', 'subject'])])
+            ->withCount(['courses' => fn ($query) => $this->offerCourses($query, $catalogOnly), 'subscriptions'])
             ->latest()
             ->paginate($perPage);
+    }
+
+    public function details(Offer $offer, bool $catalogOnly = false): Offer
+    {
+        return $offer
+            ->load(['courses' => fn ($query) => $this->offerCourses($query, $catalogOnly)->with(['teacher', 'subject'])])
+            ->loadCount(['courses' => fn ($query) => $this->offerCourses($query, $catalogOnly)]);
+    }
+
+    private function offerCourses($query, bool $catalogOnly)
+    {
+        return $query->when($catalogOnly, fn ($query) => $query->inCatalog());
     }
 
     public function create(array $data): Offer

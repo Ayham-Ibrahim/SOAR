@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\UnitController;
 use App\Http\Controllers\Admin\VideoController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\BadgeController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\ExamAttemptController;
@@ -67,6 +68,13 @@ Route::prefix('auth')->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('notifications', [NotificationController::class, 'index']);
+    Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::post('notifications/read-all', [NotificationController::class, 'markAllRead']);
+    Route::post('notifications/{id}/read', [NotificationController::class, 'markRead'])->whereNumber('id');
+
+    // "New" dots: everything at once, and marking a section as seen.
+    Route::get('badges', [BadgeController::class, 'index']);
+    Route::post('news/seen', [NewsController::class, 'seen']);
 });
 
 Route::apiResource('governorates', GovernorateController::class)->only(['index']);
@@ -91,20 +99,24 @@ Route::get('teachers', [TeacherController::class, 'activeIndex']);
 Route::get('settings/payment-info', [SettingController::class, 'paymentInfo']);
 Route::get('settings/social-links', [SettingController::class, 'socialLinks']);
 
-Route::middleware('auth:sanctum')->group(function () {
+// Student-only: a parent token gets a 403 here (parents subscribe nothing and
+// see a child's results through parent/students/{id}/... instead).
+Route::middleware(['auth:sanctum', 'student'])->group(function () {
 
     // Exam taking & results: scoped to the authenticated student.
+    Route::post('exam-attempts/seen', [ExamAttemptController::class, 'seen']);
     Route::apiResource('exam-attempts', ExamAttemptController::class)->only(['index', 'store', 'show']);
 
     // A student requesting a parent account be created for them. Reviewed by
     // an admin (see admin/parent-requests below).
     Route::apiResource('student/parent-requests', ParentAccountRequestController::class)->only(['index', 'store']);
+});
 
-    // Course subscriptions: pay-and-wait-for-approval, for a single course or
-    // a whole offer bundle. Reviewed by an admin (see admin/subscription-requests).
+// Course subscriptions: pay-and-wait-for-approval, for a single course or
+// a whole offer bundle. Reviewed by an admin (see admin/subscription-requests).
+Route::middleware(['auth:sanctum', 'student:subscription'])->group(function () {
     Route::apiResource('subscription-requests', SubscriptionRequestController::class)->only(['index', 'store', 'show']);
     Route::post('offer-subscription-requests', [SubscriptionRequestController::class, 'storeOffer']);
-
 });
 
 Route::middleware(['auth:sanctum', 'parent'])->prefix('parent')->group(function () {
@@ -115,6 +127,7 @@ Route::middleware(['auth:sanctum', 'parent'])->prefix('parent')->group(function 
         Route::get('students/{student_id}/offers', [ParentAppController::class, 'offers']);
         Route::get('students/{student_id}/academic-details', [ParentAppController::class, 'academicDetails']);
         Route::get('students/{student_id}/exam-attempts', [ParentAppController::class, 'examAttempts']);
+        Route::post('students/{student_id}/exam-attempts/seen', [ParentAppController::class, 'seenExamAttempts']);
         Route::get('students/{student_id}/exam-attempts/{id}', [ParentAppController::class, 'examAttempt']);
     });
 });

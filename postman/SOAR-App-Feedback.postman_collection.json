@@ -1,0 +1,754 @@
+{
+  "info": {
+    "name": "SOAR - App Feedback (Notifications, Badges, Catalog)",
+    "description": "بنود ملاحظات تطبيق الطالب/الأهل ولوحة التحكم.\n\n## الإعداد\n`base_url`، و`student_token` و`parent_token` و`admin_token` (توكن الداشبورد)، و`student_id` (ابن مربوط بالأهل)، و`offer_id`، و`notification_id`.\n\n## ملخص\n- **الإشعارات:** كل إشعار صار إلو `id` و`created_at` و`read_at`، والقائمة من الأحدث للأقدم مع `unread_count`. الإشعارات القديمة (قبل التحديث) معلّمة كمقروءة.\n- **مؤشر جديد:** للأخبار والنتائج، مع نقاط «تمت المشاهدة». قبل أول مشاهدة، الجديد = اللي نزل بعد إنشاء الحساب.\n- **النتائج:** `exam.course.title` و`exam.course.subject.name` بكل المحاولات (طالب وأهل).\n- **العروض:** `courses_count` صحيح، و`courses[]` بالقائمة والتفاصيل مع `teacher` و`subject`.\n- **الاشتراك:** توكن الأهل ← 403 «الاشتراك يتم من حساب الطالب».\n- **الكتالوج:** مرحلة/صف/مادة معطّلة بتخفي كل اللي تحتها من التطبيق دائماً، ومن الداشبورد مع `?active_only=1`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{student_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.soaar.tech/api",
+      "type": "string"
+    },
+    {
+      "key": "student_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "parent_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "student_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "offer_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "notification_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - الإشعارات",
+      "description": "للطالب والأهل والأدمن (نفس النقاط، كل حساب بيشوف إشعاراتو).",
+      "item": [
+        {
+          "name": "قائمة الإشعارات",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/notifications",
+            "description": "مرتّبة من الأحدث للأقدم. `unread_count` جنب `data`:\n```json\n{ \"status\": \"success\", \"data\": [ { \"id\": 12, \"title\": \"...\", \"body\": \"...\", \"type\": \"exam_result\", \"data\": {...}, \"read_at\": null, \"created_at\": \"...\", \"updated_at\": \"...\" } ], \"unread_count\": 3 }\n```"
+          }
+        },
+        {
+          "name": "عدد غير المقروء",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/notifications/unread-count",
+            "description": "لرقم الجرس بدون جلب القائمة: `data.unread_count`."
+          }
+        },
+        {
+          "name": "تعليم إشعار كمقروء",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/notifications/{{notification_id}}/read",
+            "description": "يرجع `data.notification` و`data.unread_count` الجديد. 404 إذا الإشعار مو إلك."
+          }
+        },
+        {
+          "name": "تعليم الكل كمقروء",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/notifications/read-all",
+            "description": "يرجع `data.marked_count` و`data.unread_count = 0`."
+          }
+        },
+        {
+          "name": "إشعارات الأهل",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{parent_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/notifications",
+            "description": "نفس الشكل لحساب الأهل."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - مؤشر جديد",
+      "description": "الأخبار والنتائج. `new_count` و`has_new` بيرجعوا بـ `additional_data` لقوائمها، أو كلهن مع بعض من `badges`.",
+      "item": [
+        {
+          "name": "كل المؤشرات (طالب)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/badges",
+            "description": "```json\n{ \"notifications_unread_count\": 3, \"news\": { \"new_count\": 1, \"has_new\": true }, \"results\": { \"new_count\": 2, \"has_new\": true } }\n```"
+          }
+        },
+        {
+          "name": "كل المؤشرات (أهل)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{parent_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/badges",
+            "description": "النتائج لكل ابن:\n```json\n{ \"notifications_unread_count\": 0, \"news\": {...}, \"children\": [ { \"student_id\": 5, \"name\": \"...\", \"results\": { \"new_count\": 1, \"has_new\": true } } ] }\n```"
+          }
+        },
+        {
+          "name": "الأخبار مع المؤشر",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/news",
+            "description": "إذا في توكن: `additional_data: { new_count, has_new }` (الأخبار المفعّلة فقط)."
+          }
+        },
+        {
+          "name": "تمت مشاهدة الأخبار",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/news/seen",
+            "description": "للطالب والأهل."
+          }
+        },
+        {
+          "name": "تمت مشاهدة النتائج (طالب)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/exam-attempts/seen",
+            "description": "النتيجة جديدة لما تتصحّح (MCQ فوراً، الكتابي لما يصححو الأدمن) بعد آخر مشاهدة."
+          }
+        },
+        {
+          "name": "قائمة الأبناء مع المؤشر",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{parent_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/parent/children",
+            "description": "كل ابن فيه `new_results_count`."
+          }
+        },
+        {
+          "name": "تمت مشاهدة نتائج ابن",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{parent_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/parent/students/{{student_id}}/exam-attempts/seen",
+            "description": "لكل ابن لحالو، ومنفصلة عن مشاهدة الطالب نفسو."
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - نتائجي",
+      "description": "`exam.course` (`id`، `title`) و`exam.course.subject` (`id`، `name`) بكل محاولة.",
+      "item": [
+        {
+          "name": "نتائجي",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/exam-attempts",
+            "description": "مع `additional_data: { new_count, has_new }`."
+          }
+        },
+        {
+          "name": "نتائج ابن",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{parent_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/parent/students/{{student_id}}/exam-attempts",
+            "description": "مع `additional_data: { new_count, has_new }` لهالابن."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - العروض",
+      "description": "`courses_count` = عدد الدورات الظاهرة، و`courses[]` فيها `teacher` و`subject`. بالتطبيق: الدورات اللي مرحلتها/صفها/مادتها معطّلة ما بتظهر، والعرض اللي ما ضل فيه دورات ما بيظهر.",
+      "item": [
+        {
+          "name": "قائمة العروض",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/offers",
+            "description": ""
+          }
+        },
+        {
+          "name": "تفاصيل عرض",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{student_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/offers/{{offer_id}}",
+            "description": ""
+          }
+        },
+        {
+          "name": "عروض الأدمن (إدارة)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/admin/offers",
+            "description": "كل العروض وكل دوراتها."
+          }
+        },
+        {
+          "name": "عروض الأدمن (قائمة منسدلة)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/admin/offers?active_only=1",
+            "description": "نفس فلترة التطبيق."
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - الاشتراك من حساب الأهل",
+      "description": "مرفوض دائماً.",
+      "item": [
+        {
+          "name": "طلب اشتراك بتوكن الأهل",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{parent_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/subscription-requests",
+            "description": "403:\n```json\n{ \"status\": \"error\", \"message\": \"الاشتراك يتم من حساب الطالب\" }\n```\nونفس الشي لـ `offer-subscription-requests`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"course_id\": 1\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - الكتالوج والمعطّل",
+      "description": "التطبيق (طالب/أهل/ضيف): `categories`، `sub-categories`، `subjects`، `courses`، `exams`، `offers`، `teachers` بترجع بس اللي هو ومرحلتو وصفّو ومادتو مفعّلين.\nالداشبورد: بيشوف الكل (ليقدر يرجّع يفعّل)، ومع `?active_only=1` بيتفلتر متل التطبيق — للقوائم المنسدلة.\n\nتفاصيل دورة معطّلة ← 404، إلا للطالب المشترك فيها. وطلب اشتراك بدورة معطّلة (أو عرض كل دوراتو معطّلة) ← 422.",
+      "item": [
+        {
+          "name": "المراحل (قائمة منسدلة)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/categories?active_only=1",
+            "description": ""
+          }
+        },
+        {
+          "name": "الصفوف (قائمة منسدلة)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sub-categories?active_only=1&category_id=1",
+            "description": ""
+          }
+        },
+        {
+          "name": "المواد (قائمة منسدلة)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/subjects?active_only=1&sub_category_id=1",
+            "description": ""
+          }
+        },
+        {
+          "name": "الدورات (قائمة منسدلة)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/courses?active_only=1&subject_id=1",
+            "description": ""
+          }
+        },
+        {
+          "name": "الأساتذة (قائمة منسدلة)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/admin/teachers?active_only=1",
+            "description": "الأساتذة المفعّلين، و`courses_count` = دوراتهم الظاهرة."
+          }
+        },
+        {
+          "name": "الامتحانات (قائمة منسدلة)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/admin/exams?active_only=1",
+            "description": ""
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - بانتظار التصحيح",
+      "description": "عند تسليم امتحان كتابي، بيوصل إشعار `written_exam_submitted` لكل أدمن (بيظهر بـ `GET /notifications` بتوكن الأدمن).",
+      "item": [
+        {
+          "name": "طابور التصحيح",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/admin/exam-attempts?status=pending_review",
+            "description": "`additional_data.pending_review_count` = كل المحاولات بانتظار التصحيح (مهما كانت الفلاتر)."
+          }
+        },
+        {
+          "name": "الامتحانات مع العدد",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/admin/exams",
+            "description": "كل امتحان فيه `pending_review_count` (وكمان بتفاصيل الامتحان)."
+          }
+        }
+      ]
+    }
+  ]
+}

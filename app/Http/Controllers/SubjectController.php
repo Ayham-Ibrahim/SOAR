@@ -18,7 +18,8 @@ class SubjectController extends Controller
     {
         $subjects = $this->subjectService->list(
             $this->curriculumFilters($request),
-            $request->integer('per_page', 15)
+            $request->integer('per_page', 15),
+            $this->catalogOnly($request)
         );
 
         return $this->paginate($subjects, 'تم جلب المواد بنجاح');
@@ -31,8 +32,10 @@ class SubjectController extends Controller
         return $this->success($subject, 'تم إنشاء المادة بنجاح', 201);
     }
 
-    public function show(Subject $subject)
+    public function show(Request $request, Subject $subject)
     {
+        abort_if($this->catalogOnly($request) && ! $subject->isInCatalog(), 404);
+
         return $this->success($subject->load('subCategory.category'), 'تم جلب بيانات المادة بنجاح');
     }
 
