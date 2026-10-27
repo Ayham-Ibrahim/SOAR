@@ -8,6 +8,8 @@ use App\Models\ExamAttempt;
 use App\Models\Course;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Models\Video;
+use App\Models\VideoProgress;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
 
@@ -155,7 +157,7 @@ class ParentAppService
             ->distinct()
             ->pluck('exam_id');
 
-        return Course::query()
+        $courses = Course::query()
             ->where(fn ($query) => $query
                 ->whereHas('subscriptions', fn ($subscriptions) => $subscriptions->where('student_id', $student->id))
                 ->orWhereHas('exams', fn ($exams) => $exams->whereIn('exams.id', $attemptedExamIds)))
@@ -167,12 +169,21 @@ class ParentAppService
                     ->where(fn ($exams) => $exams->where('is_active', true)->orWhereIn('exams.id', $attemptedExamIds))
                     ->orderBy('id')
                     ->with(['attempts' => fn ($attempts) => $attempts->where('user_id', $student->id)->latest()]),
+                'lessons.videos',
             ])
             ->orderBy('title')
+            ->get();
+
+        $progress = VideoProgress::query()
+            ->where('user_id', $student->id)
+            ->whereIn('video_id', $courses->flatMap(fn (Course $course) => $course->lessons->flatMap->videos->pluck('id')))
             ->get()
+            ->keyBy('video_id');
+
+        return $courses
             ->groupBy('subject_id')
             ->sortBy(fn ($courses) => $courses->first()->subject?->order ?? PHP_INT_MAX)
-            ->map(function ($courses) {
+            ->map(function ($courses) use ($progress) {
                 $subject = $courses->first()->subject;
 
                 return [
@@ -180,18 +191,37 @@ class ParentAppService
                         'id' => $subject->id,
                         'name' => $subject->name,
                     ] : null,
-                    'courses' => $courses->map(fn (Course $course) => $this->academicCourse($course))->values()->all(),
+                    'courses' => $courses->map(fn (Course $course) => $this->academicCourse($course, $progress))->values()->all(),
                 ];
             })
             ->values();
     }
 
-    private function academicCourse(Course $course): array
+    /**
+     * @param  SupportCollection<int, VideoProgress>  $progress  the student's, keyed by video_id
+     */
+    private function academicCourse(Course $course, SupportCollection $progress): array
     {
         // The live grant if there is one, else the latest (expired or revoked) one.
         $subscription = $course->subscriptions->first(fn (Subscription $grant) => $grant->isActive())
             ?? $course->subscriptions->sortByDesc('expires_at')->first();
         $hasAccess = (bool) $subscription?->isActive();
+
+        // Lessons, then each lesson's videos, in their own order.
+        $videos = $course->lessons->flatMap(fn ($lesson) => $lesson->videos->map(function (Video $video) use ($lesson, $progress) {
+            $watched = $progress->get($video->id);
+
+            return [
+                'id' => $video->id,
+                'title' => $video->title,
+                'lesson_id' => $lesson->id,
+                'lesson_title' => $lesson->title,
+                'duration_seconds' => $video->duration_seconds ?: $watched?->duration_seconds,
+                'watched_seconds' => $watched?->watched_seconds ?? 0,
+                'watch_percentage' => VideoProgressService::percentage($video, $watched),
+                'last_watched_at' => $watched?->updated_at?->toDateTimeString(),
+            ];
+        }))->values();
 
         return [
             'id' => $course->id,
@@ -201,6 +231,9 @@ class ParentAppService
             'expires_at' => $subscription?->expires_at?->toDateTimeString(),
             'is_subscription_active' => $hasAccess,
             'subscription_status' => $subscription?->status, // active | expired | revoked, null if never subscribed
+            'videos_count' => $videos->count(),
+            'watched_videos_count' => $videos->where('watched_seconds', '>', 0)->count(),
+            'videos' => $videos->all(),
             'exams' => $course->exams
                 ->filter(fn (Exam $exam) => $exam->attempts->isNotEmpty() || $hasAccess)
                 ->map(fn (Exam $exam) => [

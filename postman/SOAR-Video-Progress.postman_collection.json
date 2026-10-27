@@ -1,0 +1,224 @@
+{
+  "info": {
+    "name": "SOAR - Video Watch Progress",
+    "description": "تتبّع مشاهدة الفيديوهات: تطبيق الطالب بيبعت تقدّم المشاهدة، وتطبيق الأهل بيشوف عدد فيديوهات كل كورس ونسبة مشاهدة كل فيديو.\n\n## الإعداد\n`base_url`، و`student_token` (طالب مشترك بالكورس)، و`parent_token` (أهل مربوطين بالطالب)، و`student_id`، و`video_id` (فيديو من كورس الطالب).\n\n## ملخص\n- **حفظ التقدم:** `POST /videos/{video}/progress` — المشغّل بيبعتو كل ~15 ثانية أثناء التشغيل وعند الإيقاف/الإغلاق، وبعد مشاهدة نسخة offline لما يرجع النت.\n- **أبعد نقطة:** التقدم = أبعد نقطة وصلها الطالب؛ الرجوع لورا لإعادة مقطع ما بينقّص النسبة. `last_position_seconds` = وين وقف (للاستكمال).\n- **المصدر:** كل الفيديوهات HLS من R2 (أونلاين عبر playback، وأوفلاين عبر التنزيلات)؛ نفس الـ endpoint للحالتين.\n- **المدة:** النسبة على `duration_seconds` تبع الفيديو (بتنحسب وقت معالجته على R2)؛ مدة المشغّل احتياط بس.\n- **الأهل:** كل كورس بـ `academic-details` صار فيه `videos_count` و`watched_videos_count` و`videos[]` مع `watch_percentage`.\n- **الحدود:** 60 طلب/دقيقة لكل طالب.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{student_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.soaar.tech/api",
+      "type": "string"
+    },
+    {
+      "key": "student_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "parent_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "student_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "video_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - تطبيق الطالب: حفظ تقدم المشاهدة",
+      "description": "توكن طالب. الطالب لازم يكون إلو صلاحية يحضر الفيديو (اشتراك فعّال بكورس الدرس، أو فيديو مجاني).",
+      "item": [
+        {
+          "name": "حفظ التقدم",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position_seconds\": 300\n}"
+            },
+            "url": "{{base_url}}/videos/{{video_id}}/progress",
+            "description": "`position_seconds` (إجباري، ≥ 0): مكان المشغّل الحالي بالثواني.\n\n`watched_seconds` = أكبر قيمة وصلها الطالب، و`last_position_seconds` = آخر قيمة انبعتت.\n```json\n{ \"status\": \"success\", \"message\": \"تم حفظ تقدم المشاهدة\", \"data\": { \"video_id\": 7, \"watched_seconds\": 300, \"last_position_seconds\": 300, \"watch_percentage\": 50 } }\n```"
+          }
+        },
+        {
+          "name": "الرجوع لورا (النسبة ما بتنقص)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position_seconds\": 60\n}"
+            },
+            "url": "{{base_url}}/videos/{{video_id}}/progress",
+            "description": "بعد الطلب السابق: `watched_seconds` بيضل 300 و`watch_percentage` بيضل 50، بس `last_position_seconds` بيصير 60."
+          }
+        },
+        {
+          "name": "مع مدة المشغّل (احتياط)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position_seconds\": 45,\n  \"duration_seconds\": 180\n}"
+            },
+            "url": "{{base_url}}/videos/{{video_id}}/progress",
+            "description": "`duration_seconds` (اختياري، ≥ 1): مدة الفيديو حسب المشغّل. ابعتها إذا المشغّل بيعرفها.\n\nالسيرفر بيحسب النسبة على مدة الفيديو المخزّنة (بتنحسب وقت معالجته على R2)، ومدة المشغّل بتنستعمل بس إذا الفيديو لسا ما إلو مدة.\n\nمثال على فيديو مدته 180 ثانية: 45 / 180 ← `watch_percentage: 25`."
+          }
+        },
+        {
+          "name": "خطأ: بدون position_seconds (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": "{{base_url}}/videos/{{video_id}}/progress",
+            "description": "422 مع خطأ تحقق على `position_seconds`."
+          }
+        },
+        {
+          "name": "خطأ: طالب بدون اشتراك (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position_seconds\": 30\n}"
+            },
+            "url": "{{base_url}}/videos/{{video_id}}/progress",
+            "description": "استعمل توكن طالب ما عندو اشتراك فعّال بكورس هالفيديو (والفيديو مش مجاني):\n```json\n{ \"status\": \"error\", \"message\": \"ليس لديك صلاحية مشاهدة هذا الدرس.\" }\n```"
+          }
+        },
+        {
+          "name": "خطأ: توكن أهل (403)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{parent_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"position_seconds\": 30\n}"
+            },
+            "url": "{{base_url}}/videos/{{video_id}}/progress",
+            "description": "حساب الأهل ما بيسجّل مشاهدة:\n```json\n{ \"status\": \"error\", \"message\": \"هذا الإجراء متاح لحسابات الطلاب فقط\" }\n```"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - تطبيق الأهل: الفيديوهات ونسبة المشاهدة",
+      "description": "توكن أهل، و`student_id` لابن مربوط فيهم.",
+      "item": [
+        {
+          "name": "التفاصيل الأكاديمية (مع الفيديوهات)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{parent_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/parent/students/{{student_id}}/academic-details",
+            "description": "نفس الاستجابة السابقة، وكل كورس صار فيه:\n- `videos_count`: عدد فيديوهات الكورس.\n- `watched_videos_count`: عدد الفيديوهات اللي فتحها الطالب.\n- `videos[]`: مرتبة حسب الدروس ثم ترتيب الفيديو.\n\n`watch_percentage` من 0 لـ 100؛ 0 لفيديو ما انفتح، و`null` إذا انفتح بس ما في مدة معروفة. `last_watched_at` = null لفيديو ما انفتح.\n```json\n{\n  \"status\": \"success\",\n  \"data\": [\n    {\n      \"subject\": { \"id\": 1, \"name\": \"اللغة العربية\" },\n      \"courses\": [\n        {\n          \"id\": 4,\n          \"title\": \"اللغة العربية شاملة\",\n          \"teacher_name\": \"...\",\n          \"starts_at\": \"...\",\n          \"expires_at\": \"2027-10-21 00:00:00\",\n          \"is_subscription_active\": true,\n          \"subscription_status\": \"active\",\n          \"videos_count\": 3,\n          \"watched_videos_count\": 2,\n          \"videos\": [\n            { \"id\": 7, \"title\": \"إعراب\", \"lesson_id\": 3, \"lesson_title\": \"...\", \"duration_seconds\": 600, \"watched_seconds\": 540, \"watch_percentage\": 90, \"last_watched_at\": \"2026-10-27 10:15:00\" },\n            { \"id\": 8, \"title\": \"شرح\", \"lesson_id\": 4, \"lesson_title\": \"...\", \"duration_seconds\": 1200, \"watched_seconds\": 300, \"watch_percentage\": 25, \"last_watched_at\": \"2026-10-27 10:40:00\" },\n            { \"id\": 9, \"title\": \"تجربة\", \"lesson_id\": 5, \"lesson_title\": \"...\", \"duration_seconds\": 900, \"watched_seconds\": 0, \"watch_percentage\": 0, \"last_watched_at\": null }\n          ],\n          \"exams\": [ ... ]\n        }\n      ]\n    }\n  ]\n}\n```"
+          }
+        }
+      ]
+    }
+  ]
+}

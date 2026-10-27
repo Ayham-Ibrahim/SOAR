@@ -41,6 +41,7 @@ use App\Http\Controllers\SubscriptionRequestController;
 use App\Http\Controllers\Video\PlaybackController;
 use App\Http\Controllers\Video\VideoDownloadController;
 use App\Http\Controllers\Video\VideoKeyController;
+use App\Http\Controllers\Video\VideoProgressController;
 use App\Http\Controllers\Video\VideoUploadController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Middleware\CheckAbilities;
@@ -216,6 +217,11 @@ Route::middleware(['auth:sanctum', 'throttle:video-playback'])->group(function (
     Route::post('downloads/sync', [VideoDownloadController::class, 'sync']);
     Route::delete('downloads/{download}', [VideoDownloadController::class, 'destroy']);
 });
+
+// Watch progress (student app's player); parents read it in academic-details.
+Route::post('videos/{video}/progress', [VideoProgressController::class, 'store'])
+    ->whereNumber('video')
+    ->middleware(['auth:sanctum', 'student', 'throttle:video-progress']);
 
 // Called by the video player, which can't send a bearer token: the
 // playback token in ?t= is the credential.

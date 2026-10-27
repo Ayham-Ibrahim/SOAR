@@ -32,5 +32,9 @@ class AppServiceProvider extends ServiceProvider
         // Per token: a player fetches the key once per rendition switch.
         RateLimiter::for('video-key', fn (Request $request) => Limit::perMinute(120)
             ->by('token:'.sha1((string) $request->query('t', $request->ip()))));
+
+        // The player reports its position every ~15 seconds.
+        RateLimiter::for('video-progress', fn (Request $request) => Limit::perMinute(60)
+            ->by('user:'.($request->user()?->id ?: $request->ip())));
     }
 }
