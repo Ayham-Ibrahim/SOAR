@@ -17,7 +17,6 @@ class VideoProgress extends Model
         'video_id',
         'watched_seconds',
         'last_position_seconds',
-        'duration_seconds',
     ];
 
     protected function casts(): array
@@ -25,7 +24,6 @@ class VideoProgress extends Model
         return [
             'watched_seconds' => 'integer',
             'last_position_seconds' => 'integer',
-            'duration_seconds' => 'integer',
         ];
     }
 

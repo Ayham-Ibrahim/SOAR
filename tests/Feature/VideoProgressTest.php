@@ -75,14 +75,11 @@ class VideoProgressTest extends TestCase
         return $student;
     }
 
-    private function report(User $student, Video $video, int $position, ?int $duration = null): TestResponse
+    private function report(User $student, Video $video, int $position): TestResponse
     {
         Sanctum::actingAs($student, ['access-api']);
 
-        return $this->postJson("/api/videos/{$video->id}/progress", array_filter([
-            'position_seconds' => $position,
-            'duration_seconds' => $duration,
-        ], fn ($value) => $value !== null));
+        return $this->postJson("/api/videos/{$video->id}/progress", ['position_seconds' => $position]);
     }
 
     public function test_progress_keeps_the_furthest_point_reached(): void
@@ -101,11 +98,18 @@ class VideoProgressTest extends TestCase
         $this->report($student, $video, 700)->assertOk()->assertJsonPath('data.watch_percentage', 100);
     }
 
-    public function test_player_duration_is_used_when_the_video_has_none(): void
+    public function test_percentage_is_unknown_until_the_video_has_a_duration(): void
     {
-        $video = $this->video('YouTube', null);
+        $student = $this->subscribedStudent();
+        $video = $this->video('Processing', null);
 
-        $this->report($this->subscribedStudent(), $video, 45, 180)->assertOk()->assertJsonPath('data.watch_percentage', 25);
+        $this->report($student, $video, 45)->assertOk()
+            ->assertJsonPath('data.watched_seconds', 45)
+            ->assertJsonPath('data.watch_percentage', null);
+
+        // Processing finished: the stored progress now counts against it.
+        $video->update(['duration_seconds' => 180]);
+        $this->report($student, $video, 45)->assertOk()->assertJsonPath('data.watch_percentage', 25);
     }
 
     public function test_only_students_who_can_watch_the_video_can_report_progress(): void

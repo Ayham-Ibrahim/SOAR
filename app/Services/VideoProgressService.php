@@ -18,7 +18,7 @@ class VideoProgressService
     {
     }
 
-    public function record(User $user, Video $video, int $positionSeconds, ?int $durationSeconds): VideoProgress
+    public function record(User $user, Video $video, int $positionSeconds): VideoProgress
     {
         if (! $this->playback->canWatch($user, $video->lesson, $video)) {
             throw new VideoPipelineException('ليس لديك صلاحية مشاهدة هذا الدرس.', 403);
@@ -29,24 +29,21 @@ class VideoProgressService
         $progress->fill([
             'watched_seconds' => max($progress->watched_seconds ?? 0, $positionSeconds),
             'last_position_seconds' => $positionSeconds,
-            'duration_seconds' => $durationSeconds ?? $progress->duration_seconds,
         ])->save();
 
         return $progress;
     }
 
     /**
-     * 0–100, against the video's own duration, else the one the player
-     * reported. Null when neither is known.
+     * 0–100, against the video's duration (set when it is processed). Null
+     * for a watched video whose duration isn't known yet.
      */
     public static function percentage(Video $video, ?VideoProgress $progress): ?int
     {
-        $duration = $video->duration_seconds ?: $progress?->duration_seconds;
-
-        if (! $duration) {
+        if (! $video->duration_seconds) {
             return $progress ? null : 0;
         }
 
-        return (int) min(100, round(($progress?->watched_seconds ?? 0) / $duration * 100));
+        return (int) min(100, round(($progress?->watched_seconds ?? 0) / $video->duration_seconds * 100));
     }
 }

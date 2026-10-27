@@ -216,7 +216,7 @@ class ParentAppService
                 'title' => $video->title,
                 'lesson_id' => $lesson->id,
                 'lesson_title' => $lesson->title,
-                'duration_seconds' => $video->duration_seconds ?: $watched?->duration_seconds,
+                'duration_seconds' => $video->duration_seconds,
                 'watched_seconds' => $watched?->watched_seconds ?? 0,
                 'watch_percentage' => VideoProgressService::percentage($video, $watched),
                 'last_watched_at' => $watched?->updated_at?->toDateTimeString(),

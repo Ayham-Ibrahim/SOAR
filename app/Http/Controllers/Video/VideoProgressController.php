@@ -22,15 +22,9 @@ class VideoProgressController extends Controller
     {
         $validated = $request->validate([
             'position_seconds' => ['required', 'integer', 'min:0'],
-            'duration_seconds' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $progress = $this->progress->record(
-            $request->user(),
-            $video,
-            (int) $validated['position_seconds'],
-            isset($validated['duration_seconds']) ? (int) $validated['duration_seconds'] : null,
-        );
+        $progress = $this->progress->record($request->user(), $video, (int) $validated['position_seconds']);
 
         return $this->success([
             'video_id' => $video->id,
