@@ -436,13 +436,34 @@ class AuthService
     }
 
     /**
-     * Delete the currently authenticated account and its tokens.
+     * Permanently delete the currently authenticated account (App Store 5.1.1(v)).
+     *
+     * Foreign-keyed rows (subscriptions, requests, exam attempts, progress...)
+     * cascade in the database; the polymorphic ones (tokens, devices,
+     * notifications) have no foreign key, so they are removed here.
+     * Dashboard admins cannot delete themselves from the app.
      */
     public function deleteAccount(User|ParentModel $account): array
     {
+        if ($account instanceof User && $account->is_admin) {
+            return [
+                'success' => false,
+                'status' => 403,
+                'message' => 'لا يمكن حذف حساب المدير من التطبيق',
+            ];
+        }
+
         try {
-            $account->tokens()->delete();
-            $account->delete();
+            DB::transaction(function () use ($account) {
+                $account->tokens()->delete();
+                $account->devices()->delete();
+                $account->userNotifications()->delete();
+                $account->delete();
+            });
+
+            if ($account->avatar) {
+                FileStorage::deleteFile($account->avatar);
+            }
 
             return [
                 'success' => true,

@@ -167,7 +167,7 @@ class AuthController extends Controller
         $result = $this->authService->deleteAccount($request->user());
 
         if (! $result['success']) {
-            return $this->error($result['message'], 400);
+            return $this->error($result['message'], $result['status'] ?? 400);
         }
 
         return $this->success([], 'Account deleted successfully');
