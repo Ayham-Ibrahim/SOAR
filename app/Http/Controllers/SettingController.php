@@ -24,4 +24,12 @@ class SettingController extends Controller
 
         return $this->success($value ? json_decode($value, true) : [], 'تم جلب روابط التواصل الاجتماعي بنجاح');
     }
+
+    /**
+     * Support contacts and FAQ for the app's help screen (config/support.php).
+     */
+    public function support()
+    {
+        return $this->success(config('support'), 'تم جلب معلومات الدعم بنجاح');
+    }
 }

@@ -99,6 +99,7 @@ Route::get('payment-methods', [PaymentMethodController::class, 'index']);
 Route::get('teachers', [TeacherController::class, 'activeIndex']);
 Route::get('settings/payment-info', [SettingController::class, 'paymentInfo']);
 Route::get('settings/social-links', [SettingController::class, 'socialLinks']);
+Route::get('settings/support', [SettingController::class, 'support']);
 
 // Student-only: a parent token gets a 403 here (parents subscribe nothing and
 // see a child's results through parent/students/{id}/... instead).
