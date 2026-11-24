@@ -23,11 +23,13 @@ class ParentModel extends Authenticatable
         'password',
         'phone_verified_at',
         'is_active',
+        'is_reviewer',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'is_reviewer',
     ];
 
     protected function casts(): array
@@ -36,6 +38,7 @@ class ParentModel extends Authenticatable
             'phone_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'is_reviewer' => 'boolean',
         ];
     }
 

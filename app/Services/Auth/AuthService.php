@@ -304,7 +304,7 @@ class AuthService
 
         // Revoking a student's token would free the account for a login from
         // any other device — only an admin session reset may do that.
-        if ($account instanceof User && ! $account->is_admin) {
+        if ($account instanceof User && ! $account->is_admin && ! $account->is_reviewer) {
             return [
                 'success' => false,
                 'message' => 'لا يمكن تسجيل الخروج من حساب الطالب. لتغيير الجهاز يرجى التواصل مع الإدارة',
@@ -494,7 +494,8 @@ class AuthService
      * Issue access and refresh tokens valid for six years, replacing any
      * previous ones. Returns null for a student who already holds a live
      * session — re-checked under a row lock so two simultaneous logins
-     * can't both get through.
+     * can't both get through. Review accounts keep their other devices'
+     * tokens, since App Review signs in from several devices at once.
      *
      * @return array{0: string, 1: string}|null
      */
@@ -507,7 +508,9 @@ class AuthService
                 return null;
             }
 
-            $account->tokens()->delete();
+            if (! $account->is_reviewer) {
+                $account->tokens()->delete();
+            }
 
             $accessToken = $account->createToken('mobile-access', ['access-api'], now()->addYears(6))->plainTextToken;
             $refreshToken = $account->createToken('mobile-refresh', ['refresh-token'], now()->addYears(6))->plainTextToken;
@@ -519,10 +522,11 @@ class AuthService
     /**
      * A student account is bound to the device holding its session; a new
      * one can't be opened until an admin resets it (admin/students/{id}/reset-session).
+     * Review accounts are never locked.
      */
     private function isLockedStudent(User|ParentModel $account): bool
     {
-        return $account instanceof User && ! $account->is_admin && $account->hasActiveSession();
+        return $account instanceof User && ! $account->is_admin && ! $account->is_reviewer && $account->hasActiveSession();
     }
 
     private function sessionActiveError(): array

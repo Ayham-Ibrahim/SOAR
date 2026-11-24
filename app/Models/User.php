@@ -37,6 +37,7 @@ class User extends Authenticatable
         'age',
         'avatar',
         'is_admin',
+        'is_reviewer',
         'sham_code',
         'sham_image',
         'password',
@@ -51,6 +52,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'is_reviewer',
     ];
 
     /**
@@ -64,6 +66,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'phone_verified_at' => 'datetime',
             'is_admin' => 'boolean',
+            'is_reviewer' => 'boolean',
             'password' => 'hashed',
         ];
     }

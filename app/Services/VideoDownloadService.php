@@ -57,7 +57,7 @@ class VideoDownloadService
 
         $height = $this->pickHeight($heights, $height);
 
-        if (! $user->is_admin) {
+        if (! $user->is_admin && ! $user->is_reviewer) {
             $this->enforceDeviceLimit($user, $deviceId);
         }
 

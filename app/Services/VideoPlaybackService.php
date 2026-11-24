@@ -41,7 +41,7 @@ class VideoPlaybackService
             throw VideoPipelineException::conflict('الفيديو قيد المعالجة ولم يجهز للمشاهدة بعد.');
         }
 
-        if (! $user->is_admin) {
+        if (! $user->is_admin && ! $user->is_reviewer) {
             $this->enforceDeviceLimit($user, $deviceId);
         }
 
