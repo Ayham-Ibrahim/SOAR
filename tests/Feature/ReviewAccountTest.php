@@ -18,9 +18,9 @@ class ReviewAccountTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const STUDENT_PHONE = '+963911111111';
+    private const STUDENT_PHONE = '+963933335555';
 
-    private const PARENT_PHONE = '+963922222222';
+    private const PARENT_PHONE = '+963933336666';
 
     private function asNewDevice(): static
     {

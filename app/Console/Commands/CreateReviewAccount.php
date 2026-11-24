@@ -21,8 +21,8 @@ use Illuminate\Support\Facades\DB;
 class CreateReviewAccount extends Command
 {
     protected $signature = 'review:account
-        {--student-phone=+963911111111}
-        {--parent-phone=+963922222222}
+        {--student-phone=+963933335555}
+        {--parent-phone=+963933336666}
         {--password=Review@2026}
         {--days=365 : How long the course subscriptions last}';
 
